@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZERO | The Thomas Protocol</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        /* === THEME ENGINE MATRIX === */
+        :root {
+            --font-head: 'Press Start 2P', cursive;
+            --font-body: 'Space Mono', monospace;
+            --border-width: 2px;
+            --radius: 0px;
+        }
+
+        /* 1. NOSTALGIA (Default) */
+        .theme-nostalgia.mode-dark {
+            --bg: #0F0F1B; --panel: #1a1a2e; --accent: #00F5D4; --alert: #FF595E; --text: #E0E0E0; --dim: #6b7280;
+        }
+        .theme-nostalgia.mode-light {
+            --bg: #E0E0E0; --panel: #F0F0F0; --accent: #008f7a; --alert: #D00000; --text: #1a1a2e; --dim: #8b92a0;
+        }
+
+        /* 2. BAUHAUS */
+        .theme-bauhaus { --font-head: 'Space Mono', monospace; --radius: 4px; --border-width: 1px; }
+        .theme-bauhaus.mode-dark {
+            --bg: #111111; --panel: #1e1e1e; --accent: #d14900; --alert: #cc0000; --text: #aaaaaa; --dim: #444444;
+        }
+        .theme-bauhaus.mode-light {
+            --bg: #f4f4f0; --panel: #e8e8e5; --accent: #d14900; --alert: #cc0000; --text: #333333; --dim: #999999;
+        }
+
+        /* 3. TARGETING */
+        .theme-targeting { --radius: 0px; --border-width: 1px; }
+        .theme-targeting.mode-dark {
+            --bg: #051a05; --panel: #0a260a; --accent: #39ff14; --alert: #ff3333; --text: #39ff14; --dim: #1e5c0d;
+        }
+        .theme-targeting.mode-light {
+            --bg: #e6ffe6; --panel: #ccffcc; --accent: #006600; --alert: #cc0000; --text: #004d00; --dim: #66b266;
+        }
+
+        /* 4. MINIMALIST */
+        .theme-minimalist { --radius: 0px; --border-width: 3px; --font-head: 'Space Mono', monospace; }
+        .theme-minimalist.mode-dark {
+            --bg: #000000; --panel: #000000; --accent: #ffffff; --alert: #ffffff; --text: #ffffff; --dim: #666666;
+        }
+        .theme-minimalist.mode-light {
+            --bg: #ffffff; --panel: #ffffff; --accent: #000000; --alert: #000000; --text: #000000; --dim: #999999;
+        }
+
+        /* 5. CITIES */
+        .theme-cities { --radius: 8px; --border-width: 2px; }
+        .theme-cities.mode-dark {
+            --bg: #1a1a2e; --panel: #16213e; --accent: #e94560; --alert: #ff2a6d; --text: #e0e0e0; --dim: #533483;
+        }
+        .theme-cities.mode-light {
+            --bg: #fcd5ce; --panel: #f8edeb; --accent: #e94560; --alert: #d00000; --text: #2b2d42; --dim: #8d99ae;
+        }
+
+        /* CORE CSS */
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        h1, h2, h3, .pixel-font { font-family: var(--font-head); text-transform: uppercase; }
+
+        .scanlines {
+            position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.4;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px;
+        }
+        .theme-minimalist .scanlines, .theme-bauhaus .scanlines { display: none; }
+
+        .pixel-panel {
+            background-color: var(--panel);
+            border: var(--border-width) solid var(--dim);
+            border-radius: var(--radius);
+        }
+        
+        .theme-minimalist .pixel-panel { border-color: var(--text); }
+        .theme-targeting .pixel-panel { border-color: var(--accent); box-shadow: 0 0 10px var(--dim); }
+
+        .pixel-btn {
+            background: var(--accent); color: var(--bg);
+            border: var(--border-width) solid transparent; border-radius: var(--radius);
+            font-weight: bold; text-transform: uppercase; cursor: pointer; transition: transform 0.1s;
+        }
+        .theme-minimalist .pixel-btn { background: var(--text); color: var(--bg); }
+        .pixel-btn:active { transform: translateY(2px); }
+        .pixel-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
+        
+        .pixel-btn-outline {
+            background: transparent; border: var(--border-width) solid var(--text); color: var(--text); border-radius: var(--radius);
+        }
+        .pixel-btn-danger { background: var(--alert); color: #fff; border-radius: var(--radius); }
+
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .crt-flicker { animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.95; } 100% { opacity: 1; } }
+    </style>
+</head>
+
+<body :class="['theme-' + settings.theme, 'mode-' + settings.themeMode]" x-data="gameEngine()" x-init="init()">
+
+    <div class="scanlines"></div>
+
+    <div class="fixed top-4 left-0 right-0 z-[100] flex justify-center pointer-events-none">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="pixel-panel px-4 py-3 mb-2 flex items-center gap-3 shadow-lg slide-up" 
+                 :class="toast.type === 'unlock' ? 'border-[var(--accent)]' : 'border-[var(--text)]'">
+                <div class="text-xl" x-text="toast.icon"></div>
+                <div class="text-xs">
+                    <div class="font-bold text-[var(--accent)]" x-text="toast.title"></div>
+                    <div class="text-[var(--text)]" x-text="toast.msg"></div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col p-4 relative z-10 pb-12 transition-all">
+
+        <header class="flex justify-between items-end mb-6 border-b-2 border-[var(--dim)] pb-2">
+            <div>
+                <h1 class="text-sm md:text-lg text-[var(--accent)]">ZERO</h1>
+                <p class="text-[10px] text-[var(--dim)]">PROTOCOL V1.4</p>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] font-bold text-[var(--accent)] mb-1">PP: <span x-text="progression.protocolPoints"></span></div>
+                <div class="flex gap-3 justify-end items-center">
+                     <button @click="toggleSound()" class="text-sm hover:text-[var(--accent)]" :title="settings.soundEnabled ? 'Mute' : 'Unmute'">
+                        <span x-text="settings.soundEnabled ? '🔊' : '🔇'"></span>
+                     </button>
+                     <button @click="goHome()" class="text-sm hover:text-[var(--accent)]" title="Home">
+                        🏠
+                     </button>
+                     <button @click="showDevPanel = !showDevPanel" class="text-xs font-mono font-bold hover:text-[var(--accent)] border border-[var(--dim)] px-1" title="Developer Tools">
+                        &lt;/&gt;
+                     </button>
+                     <button @click="currentView = 'history'" class="text-[10px] underline hover:text-[var(--accent)]">LOGS</button>
+                     <button @click="currentView = 'settings'" class="text-[10px] underline hover:text-[var(--accent)]">CFG</button>
+                </div>
+            </div>
+        </header>
+
+        <div x-show="showDevPanel" class="fixed inset-x-0 top-16 mx-auto max-w-md z-40 px-4 slide-up" x-cloak>
+            <div class="pixel-panel p-4 shadow-2xl border-2 border-[var(--accent)] bg-[var(--bg)]">
+                <div class="flex justify-between items-center mb-4 border-b border-[var(--dim)] pb-2">
+                    <h3 class="text-xs text-[var(--accent)] font-bold">DEVELOPER CONSOLE</h3>
+                    <button @click="showDevPanel = false" class="text-xs">CLOSE</button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px]">DEV MODE (UNLOCKS)</span>
+                        <button @click="toggleDevMode()" class="text-[10px] font-bold border px-2 py-1" :class="settings.devMode ? 'bg-[var(--accent)] text-[var(--bg)]' : ''" x-text="settings.devMode ? 'ON' : 'OFF'"></button>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px]">TEST MODE (10s TIMER)</span>
+                        <button @click="settings.testMode = !settings.testMode" class="text-[10px] font-bold border px-2 py-1" :class="settings.testMode ? 'bg-[var(--alert)] text-white' : ''" x-text="settings.testMode ? 'ACTIVE' : 'INACTIVE'"></button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <button @click="playSound('start')" class="border p-1 text-[10px]">TEST START</button>
+                        <button @click="playSound('complete')" class="border p-1 text-[10px]">TEST END</button>
+                        <button @click="playSound('tick')" class="border p-1 text-[10px]">TEST TICK</button>
+                        <button @click="playSound('alert')" class="border p-1 text-[10px]">TEST ALERT</button>
+                    </div>
+
+                    <div x-show="currentView === 'mission'" class="pt-2 border-t border-[var(--dim)]">
+                        <button @click="skipMission()" class="w-full pixel-btn-danger text-xs py-2">SKIP CURRENT MISSION >></button>
+                    </div>
+                    
+                    <div class="text-[8px] font-mono text-[var(--dim)] pt-2">
+                        ACT_RAW: <span x-text="debug.rawActivity"></span> | ACT_SMOOTH: <span x-text="activityScore"></span><br>
+                        CAM: <span x-text="privacy.webcamEnabled"></span> | ERR: <span x-text="webcamError || 'NONE'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <template x-if="currentView === 'start'">
+            <div class="flex-1 flex flex-col justify-center space-y-6 slide-up">
+                <div class="pixel-panel p-6 text-center">
+                    <h2 class="text-sm mb-4 text-[var(--accent)]">SYSTEM READY</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[10px] block text-left mb-1 text-[var(--dim)]">OPERATOR CALLSIGN</label>
+                            <input type="text" x-model="user.name" class="w-full bg-transparent border-b-2 border-[var(--dim)] p-2 text-center font-mono focus:border-[var(--accent)] outline-none text-[var(--text)]">
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button @click="setMode('solo')" :class="mode==='solo' ? 'pixel-btn' : 'pixel-btn-outline'" class="flex-1 p-3 text-xs">SOLO</button>
+                            <button @click="setMode('coop')" :class="mode==='coop' ? 'pixel-btn' : 'pixel-btn-outline'" class="flex-1 p-3 text-xs">CO-OP</button>
+                        </div>
+                    </div>
+                </div>
+                <button @click="currentView = 'map'; playSound('start')" class="pixel-btn w-full py-4 text-sm shadow-lg">INITIALIZE RUN</button>
+            </div>
+        </template>
+
+        <template x-if="currentView === 'map'">
+            <div class="flex-1 flex flex-col space-y-6 slide-up">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xs pixel-font">PARAMETERS</h2>
+                    <button @click="currentView = 'start'" class="text-[10px] border border-[var(--dim)] px-2 py-1">BACK</button>
+                </div>
+                
+                <div class="space-y-2">
+                    <p class="text-[10px] uppercase text-[var(--dim)]">Duration</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <template x-for="t in [5, 10, 15, 30, 60, 90]">
+                            <button @click="setTime(t)" 
+                                :class="selectedTime === t ? 'bg-[var(--accent)] text-[var(--bg)] border-[var(--accent)]' : 'border-[var(--dim)] text-[var(--dim)]'"
+                                class="border-2 p-2 text-xs font-bold transition-all rounded-[var(--radius)]" 
+                                x-text="t + 'm'"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-[10px] uppercase text-[var(--dim)]">Target Sectors</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <template x-for="room in rooms" :key="room.id">
+                            <button @click="toggleRoom(room.id)" 
+                                 class="p-4 border-2 transition-all relative text-center rounded-[var(--radius)]"
+                                 :class="selectedRooms.includes(room.id) ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text)]' : 'border-[var(--dim)] text-[var(--dim)]'">
+                                <span x-text="room.name" class="pixel-font text-[10px]"></span>
+                                <div x-show="selectedRooms.includes(room.id)" class="absolute top-1 right-1 text-[var(--accent)] text-[8px]">●</div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-4 space-y-2">
+                    <button @click="generatePlan()" :disabled="!selectedTime || selectedRooms.length === 0" class="pixel-btn w-full py-4 text-sm shadow-lg">GENERATE PLAN</button>
+                    <button @click="resetMap()" class="w-full text-[10px] text-[var(--dim)] py-2 hover:text-[var(--text)]">RESET</button>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="currentView === 'contract'">
+            <div class="flex-1 flex flex-col justify-center space-y-6 slide-up">
+                <div class="pixel-panel p-6">
+                    <h2 class="text-center text-sm text-[var(--accent)] mb-4 pixel-font">JOINT PROTOCOL</h2>
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="text-[10px] block mb-1 text-[var(--dim)]">PARTNER CALLSIGN</label>
+                            <input x-model="coop.partnerName" type="text" class="w-full bg-transparent border-b-2 border-[var(--dim)] p-2 text-[var(--text)] text-center font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[10px] block mb-1 text-[var(--dim)]">AGREED REWARD</label>
+                            <input x-model="runReward" type="text" placeholder="e.g. Sushi, Movie" class="w-full bg-transparent border-b-2 border-[var(--dim)] p-2 text-[var(--text)] text-center font-mono">
+                        </div>
+                    </div>
+                    <button @click="startRun()" class="pixel-btn w-full py-3 text-sm font-bold">SIGN & EXECUTE</button>
+                </div>
+                <button @click="currentView = 'map'" class="text-xs text-center underline">BACK</button>
+            </div>
+        </template>
+
+        <template x-if="currentView === 'mission'">
+            <div class="flex-1 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="text-[10px] text-[var(--dim)]">MISSION <span x-text="currentMissionIndex + 1"></span>/<span x-text="plan.length"></span></div>
+                    <div class="text-[10px] text-[var(--dim)]" x-text="mode.toUpperCase()"></div>
+                </div>
+                
+                <h2 class="text-sm md:text-lg text-[var(--text)] pixel-font leading-tight mb-4" x-text="currentMission.title"></h2>
+
+                <div class="mb-4 pixel-panel bg-black p-6 relative overflow-hidden text-center">
+                    <div class="absolute top-0 left-0 h-full bg-[var(--accent)] opacity-20 progress-bar" :style="`width: ${timeProgress}%`"></div>
+                    <div class="relative z-10 text-4xl md:text-5xl font-mono tracking-widest text-white" 
+                         :class="timeLeft < 60 && isTimerRunning ? 'text-[var(--alert)] crt-flicker' : ''"
+                         x-text="formatTime(timeLeft)"></div>
+                    <div x-show="settings.testMode" class="absolute top-1 right-1 text-[8px] text-[var(--alert)]">TEST MODE</div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between items-end mb-1">
+                        <div class="text-[10px] text-[var(--dim)]">VISUAL TELEMETRY</div>
+                        <div x-show="privacy.webcamEnabled" class="text-[10px]" :class="activityScore > 10 ? 'text-[var(--accent)]' : 'text-[var(--dim)]'">
+                            ACTIVITY: <span x-text="activityScore"></span>%
+                        </div>
+                    </div>
+
+                    <div x-show="!privacy.webcamEnabled" class="border border-[var(--dim)] bg-black/10 p-4 text-center rounded-[var(--radius)]">
+                        <div class="text-[var(--dim)] text-xs mb-1">[ PRIVACY SHIELD ACTIVE ]</div>
+                        <div class="text-[10px] text-[var(--dim)] italic" x-text="privacyMsg"></div>
+                    </div>
+
+                    <div x-show="privacy.webcamEnabled" class="relative border border-[var(--dim)] bg-black w-full h-40 overflow-hidden rounded-[var(--radius)]">
+                        <video x-ref="cam" autoplay playsinline muted class="w-full h-full object-cover opacity-80"></video>
+                        <div x-show="webcamError" class="absolute inset-0 flex items-center justify-center text-[var(--alert)] text-xs p-2 text-center" x-text="webcamError"></div>
+                        <div x-show="idleWarning" class="absolute inset-0 bg-[var(--alert)]/90 flex flex-col items-center justify-center text-white p-2 text-center crt-flicker z-20">
+                            <div class="font-bold text-sm mb-1">IDLE DETECTED</div>
+                            <div class="text-[10px]">OPERATOR: MOVE ONE ITEM NOW.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto mb-4 space-y-2">
+                    <div class="bg-[var(--panel)] p-3 border-l-4 border-[var(--accent)] shadow-sm">
+                        <h3 class="text-[10px] text-[var(--accent)] mb-1 font-bold">OBJECTIVE</h3>
+                        <p class="text-xs" x-text="currentMission.objective"></p>
+                    </div>
+                    <div class="bg-[var(--panel)] p-3 border-l-4 border-[var(--dim)] shadow-sm">
+                         <h3 class="text-[10px] text-[var(--dim)] mb-1 font-bold">RULES</h3>
+                        <ul class="text-[10px] list-disc pl-4 space-y-1 text-[var(--dim)]">
+                            <template x-for="rule in currentMission.rules"><li x-text="rule"></li></template>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-auto space-y-3">
+                    
+                    <div x-show="mode === 'coop'" class="grid grid-cols-2 gap-3">
+                        <button @click="toggleCoopDone('A')" :class="coop.playerADone ? 'bg-[var(--accent)] text-[var(--bg)]' : 'border border-[var(--dim)] text-[var(--dim)]'" class="p-2 text-[10px] font-bold transition-all rounded-[var(--radius)]">
+                            <span x-text="user.name"></span> DONE <span x-show="coop.playerADone">✓</span>
+                        </button>
+                        <button @click="toggleCoopDone('B')" :class="coop.playerBDone ? 'bg-[var(--accent)] text-[var(--bg)]' : 'border border-[var(--dim)] text-[var(--dim)]'" class="p-2 text-[10px] font-bold transition-all rounded-[var(--radius)]">
+                            <span x-text="coop.partnerName || 'PARTNER'"></span> DONE <span x-show="coop.playerBDone">✓</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3">
+                        <button x-show="!isTimerRunning && !isPaused && !missionJustCompleted" @click="toggleTimer()" class="pixel-btn w-full py-4 text-sm shadow-lg">START TIMER</button>
+
+                        <div x-show="isTimerRunning" class="grid grid-cols-2 gap-3">
+                            <button @click="toggleTimer()" class="pixel-btn-outline py-4 text-xs font-bold">PAUSE</button>
+                            <button @click="finishEarly()" class="pixel-btn w-full py-4 text-xs font-bold">FINISH EARLY</button>
+                        </div>
+                        
+                        <div x-show="isPaused" class="grid grid-cols-2 gap-3">
+                            <button @click="toggleTimer()" class="pixel-btn w-full py-4 text-sm col-span-2 shadow-lg">CONTINUE</button>
+                            <button @click="openStopModal()" class="text-[10px] text-[var(--alert)] underline col-span-2">ABORT MISSION</button>
+                        </div>
+
+                        <button x-show="missionJustCompleted" @click="nextMission()" class="pixel-btn w-full py-4 text-sm animate-pulse shadow-lg">
+                            <span x-text="currentMissionIndex < plan.length - 1 ? 'NEXT MISSION' : 'FINISH RUN'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="currentView === 'summary'">
+            <div class="flex-1 flex flex-col justify-center text-center space-y-6 slide-up">
+                <h2 class="text-xl pixel-font text-[var(--accent)]">RUN COMPLETE</h2>
+                <div class="pixel-panel p-6 text-left space-y-4 shadow-lg">
+                    <div class="flex justify-between border-b border-[var(--dim)] pb-2">
+                        <span class="text-xs text-[var(--dim)]">MISSIONS CLEARED</span>
+                        <span class="font-bold font-mono" x-text="completedMissions + '/' + plan.length"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-[var(--dim)] pb-2">
+                        <span class="text-xs text-[var(--dim)]">POINTS EARNED</span>
+                        <span class="font-bold font-mono text-[var(--accent)]">+<span x-text="runSessionPoints"></span> PP</span>
+                    </div>
+                    <div class="flex justify-between border-b border-[var(--dim)] pb-2">
+                        <span class="text-xs text-[var(--dim)]">TOTAL LIFETIME</span>
+                        <span class="font-bold font-mono" x-text="progression.protocolPoints"></span>
+                    </div>
+                    <div x-show="runReward" class="flex justify-between pt-2">
+                        <span class="text-xs text-[var(--dim)]">REWARD UNLOCKED</span>
+                        <span class="font-bold font-mono text-[var(--accent)]" x-text="runEndedEarly ? 'FORFEITED' : runReward"></span>
+                    </div>
+                </div>
+
+                <div x-show="mode === 'coop'" class="text-left space-y-4">
+                    <p class="text-[10px] text-[var(--dim)] text-center">DEBRIEF PROTOCOL</p>
+                    <div class="bg-[var(--panel)] p-2 rounded-[var(--radius)]">
+                        <label class="text-[10px] block mb-1 text-[var(--accent)]">FROM <span x-text="user.name"></span></label>
+                        <input x-model="coop.complimentA" type="text" class="w-full bg-transparent border-b border-[var(--dim)] p-1 text-xs outline-none">
+                    </div>
+                     <div class="bg-[var(--panel)] p-2 rounded-[var(--radius)]">
+                        <label class="text-[10px] block mb-1 text-[var(--accent)]">FROM <span x-text="coop.partnerName"></span></label>
+                        <input x-model="coop.complimentB" type="text" class="w-full bg-transparent border-b border-[var(--dim)] p-1 text-xs outline-none">
+                    </div>
+                </div>
+
+                <button @click="saveAndExit()" class="pixel-btn w-full py-4 font-bold mt-4 shadow-lg">SAVE TO LOGS</button>
+            </div>
+        </template>
+
+        <template x-if="currentView === 'settings'">
+            <div class="flex-1 flex flex-col space-y-6 slide-up">
+                <div class="flex justify-between items-center border-b border-[var(--dim)] pb-2">
+                    <h2 class="text-xs pixel-font">SETTINGS</h2>
+                    <button @click="currentView = 'start'" class="text-[10px] border border-[var(--dim)] px-2">CLOSE</button>
+                </div>
+
+                <div class="space-y-6 overflow-y-auto max-h-[75vh] pr-2">
+                    <div class="space-y-3">
+                        <h3 class="text-[10px] text-[var(--accent)] font-bold">DISPLAY</h3>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs">Color Mode</span>
+                            <div class="flex gap-1">
+                                <button @click="setThemeMode('dark')" :class="settings.themeMode === 'dark' ? 'bg-[var(--text)] text-[var(--bg)]' : 'border border-[var(--dim)]'" class="px-2 py-1 text-[10px]">DARK</button>
+                                <button @click="setThemeMode('light')" :class="settings.themeMode === 'light' ? 'bg-[var(--text)] text-[var(--bg)]' : 'border border-[var(--dim)]'" class="px-2 py-1 text-[10px]">LIGHT</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-[var(--dim)] opacity-30">
+
+                    <div class="space-y-3">
+                        <h3 class="text-[10px] text-[var(--accent)] font-bold">INTERFACE STYLE</h3>
+                        <div class="grid grid-cols-1 gap-2">
+                            <template x-for="theme in themeList" :key="theme.id">
+                                <button @click="selectTheme(theme.id)"
+                                    :disabled="!isThemeUnlocked(theme.id)"
+                                    class="text-left p-3 border-2 flex justify-between items-center rounded-[var(--radius)] transition-all"
+                                    :class="settings.theme === theme.id ? 'border-[var(--accent)] bg-[var(--accent)]/10' : (isThemeUnlocked(theme.id) ? 'border-[var(--dim)] opacity-80' : 'border-[var(--dim)] opacity-40 grayscale')">
+                                    <div><div class="text-xs font-bold" x-text="theme.name"></div><div class="text-[8px] text-[var(--dim)]" x-text="theme.desc"></div></div>
+                                    <div x-show="!isThemeUnlocked(theme.id)">🔒</div>
+                                    <div x-show="settings.theme === theme.id" class="text-[var(--accent)]">●</div>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <hr class="border-[var(--dim)] opacity-30">
+
+                    <div class="space-y-3">
+                        <h3 class="text-[10px] text-[var(--accent)] font-bold">SENSORS</h3>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs">Camera</span>
+                            <button @click="togglePrivacy('webcam')" :class="privacy.webcamEnabled ? 'text-[var(--accent)]' : 'text-[var(--dim)]'" class="text-xs font-bold" x-text="privacy.webcamEnabled ? 'ENABLED' : 'DISABLED'"></button>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs">Microphone</span>
+                            <button @click="togglePrivacy('mic')" :class="privacy.micEnabled ? 'text-[var(--accent)]' : 'text-[var(--dim)]'" class="text-xs font-bold" x-text="privacy.micEnabled ? 'ENABLED' : 'DISABLED'"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="currentView === 'history'">
+            <div class="flex-1 flex flex-col space-y-4 slide-up">
+                <div class="flex justify-between items-center border-b border-[var(--dim)] pb-2">
+                    <h2 class="text-xs pixel-font">MISSION LOGS</h2>
+                    <button @click="currentView = 'start'" class="text-[10px] border border-[var(--dim)] px-2">CLOSE</button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto space-y-2">
+                    <button @click="clearHistory()" x-show="savedRuns.length > 0" class="w-full text-[10px] text-[var(--alert)] border border-[var(--alert)] py-2 mb-2">CLEAR ALL HISTORY</button>
+                    
+                    <template x-for="(run, index) in savedRuns" :key="run.id">
+                        <div class="pixel-panel p-3 text-xs" x-data="{ expanded: false }">
+                            <div class="flex justify-between font-bold text-[var(--accent)] cursor-pointer" @click="expanded = !expanded">
+                                <span x-text="new Date(run.date).toLocaleDateString()"></span>
+                                <span x-text="'+' + (run.points || 0) + ' PP'"></span>
+                            </div>
+                            <div class="flex justify-between mt-1 text-[var(--dim)]">
+                                <span x-text="run.mode.toUpperCase()"></span>
+                                <span x-text="run.missions + ' Missions'"></span>
+                            </div>
+                            <div x-show="expanded" class="mt-2 pt-2 border-t border-[var(--dim)] space-y-1 text-[10px]">
+                                <div x-show="run.mode === 'coop'">
+                                    PARTNERS: <span x-text="run.coop?.complimentA ? 'Logged' : 'No Data'"></span>
+                                </div>
+                                <div x-show="run.reward">REWARD: <span x-text="run.reward"></span></div>
+                                <button @click="deleteRun(index)" class="text-[var(--alert)] underline mt-2">DELETE ENTRY</button>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="savedRuns.length === 0" class="text-center text-[var(--dim)] text-xs mt-10">NO LOGS FOUND</div>
+                </div>
+            </div>
+        </template>
+
+        <div x-show="modals.stop" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div class="bg-[var(--panel)] border-2 border-[var(--alert)] p-6 max-w-xs text-center shadow-lg slide-up rounded-[var(--radius)]">
+                <h3 class="text-[var(--alert)] text-sm font-bold mb-2">MISSION ABORT?</h3>
+                <p class="text-xs mb-4">COMPLETE marks mission done.<br>ABORT ends it with 0 Points.</p>
+                <div class="flex flex-col gap-2">
+                    <button @click="confirmStop('complete')" class="pixel-btn w-full text-xs py-3">COMPLETE MISSION</button>
+                    <button @click="confirmStop('abort')" class="pixel-btn-danger w-full text-xs py-3">ABORT MISSION</button>
+                    <button @click="modals.stop = false" class="text-[10px] text-[var(--dim)] mt-2 hover:text-[var(--text)]">CANCEL</button>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="modals.home" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+             <div class="bg-[var(--panel)] border-2 border-[var(--text)] p-6 max-w-xs text-center shadow-lg slide-up rounded-[var(--radius)]">
+                <h3 class="text-[var(--text)] text-sm font-bold mb-2">ABANDON RUN?</h3>
+                <p class="text-xs mb-4">Current progress will be flagged as Incomplete.</p>
+                <div class="flex flex-col gap-2">
+                    <button @click="confirmHome()" class="pixel-btn-danger w-full text-xs py-3">END RUN & EXIT</button>
+                    <button @click="modals.home = false" class="text-[10px] text-[var(--dim)] mt-2">STAY</button>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="modals.webcam" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div class="bg-[var(--panel)] border-2 border-[var(--accent)] p-6 max-w-xs text-center shadow-lg slide-up rounded-[var(--radius)]">
+                <h3 class="text-[var(--accent)] text-sm font-bold mb-2">SENSORS OFFLINE</h3>
+                <p class="text-xs mb-4">Operator, visual telemetry is disabled in settings.</p>
+                <div class="flex flex-col gap-2">
+                    <button @click="enableWebcamFromModal()" class="pixel-btn w-full text-xs py-3">ENABLE CAMERA</button>
+                    <button @click="modals.webcam = false" class="text-[10px] text-[var(--dim)] mt-2">CONTINUE WITHOUT IT</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol=0.1) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration); // Strict stop
+        }
+
+        function playSound(id) {
+            // Check global mute
+            if (localStorage.getItem('zero_settings') && !JSON.parse(localStorage.getItem('zero_settings')).soundEnabled) return;
+
+            if (id === 'start') {
+                playTone(440, 'square', 0.1); 
+                setTimeout(() => playTone(880, 'square', 0.2), 100);
+            } else if (id === 'tick') {
+                playTone(800, 'triangle', 0.05, 0.05);
+            } else if (id === 'complete') {
+                playTone(523, 'square', 0.1); 
+                setTimeout(() => playTone(659, 'square', 0.1), 100); 
+                setTimeout(() => playTone(783, 'square', 0.3), 200);
+            } else if (id === 'alert') {
+                playTone(150, 'sawtooth', 0.2); 
+                setTimeout(() => playTone(100, 'sawtooth', 0.2), 150);
+            } else if (id === 'unlock') {
+                playTone(600, 'sine', 0.1); 
+                setTimeout(() => playTone(1200, 'sine', 0.3), 100);
+            }
+        }
+    </script>
+
+    <script>
+        const MISSION_DB = [
+            { id: 'm1', title: 'Trash Sweep', zone: 'Global', duration: 10, objective: 'Remove all visible refuse. No sorting.', rules: ['Black bag only.', 'Do not check contents.', 'Stop at 0:00.'] },
+            { id: 'm2', title: 'Clothing Retrieval', zone: 'Global', duration: 10, objective: 'Gather loose textiles.', rules: ['Dirty -> Basket.', 'Clean -> Pile.', 'Do not fold yet.'] },
+            { id: 'm3', title: 'Counter Clear', zone: 'Kitchen', duration: 15, objective: 'Clear flat surfaces.', rules: ['Dishes to sink.', 'Trash to bin.', 'Appliances back.'] },
+            { id: 'm4', title: 'Sink Reset', zone: 'Kitchen', duration: 15, objective: 'Empty and scrub sink.', rules: ['Load dishwasher.', 'Scrub basin.', 'Dry fixtures.'] },
+            { id: 'm5', title: 'Vanity & Toilet', zone: 'Bathroom', duration: 10, objective: 'Sanitize main points.', rules: ['Spray & wipe.', 'Clear counter.', 'Fresh towel.'] },
+            { id: 'm6', title: 'Bed Reset', zone: 'Bedroom', duration: 5, objective: 'Make the bed.', rules: ['Tight corners.', 'Pillows arranged.', 'Clear surface.'] },
+            { id: 'm7', title: 'Floor Clearance', zone: 'Living', duration: 10, objective: 'Make floors walkable.', rules: ['Big items to sides.', 'Shoes away.', 'Vacuum center.'] },
+            { id: 'm8', title: 'Closet Strike', zone: 'Closet', duration: 15, objective: 'Rehang and reset.', rules: ['Hangers one way.', 'Shoes paired.', 'Floor clear.'] },
+            { id: 'm9', title: 'Final Polish', zone: 'Global', duration: 5, objective: 'Visual victory lap.', rules: ['Wipe smudges.', 'Adjust lights.', 'Sit and admire.'] },
+        ];
+
+        const THEME_DB = [
+            { id: 'nostalgia', name: 'Nostalgia', desc: 'The original void.', unlockScore: 0 },
+            { id: 'bauhaus', name: 'Bauhaus', desc: 'Functional clarity.', unlockScore: 100 },
+            { id: 'targeting', name: 'Targeting', desc: 'Tactical HUD.', unlockScore: 250 },
+            { id: 'minimalist', name: 'Minimalist', desc: 'Pure data. No noise.', unlockScore: 500 },
+            { id: 'cities', name: 'Cities', desc: 'Neon nights.', unlockScore: 800 },
+        ];
+
+        function gameEngine() {
+            return {
+                // STATE
+                currentView: 'start',
+                showDevPanel: false,
+                mode: 'solo',
+                user: { name: 'OPERATOR' },
+                settings: { soundEnabled: true, theme: 'nostalgia', themeMode: 'dark', testMode: false, devMode: false },
+                privacy: { webcamEnabled: false, micEnabled: false },
+                progression: { protocolPoints: 0, unlockedThemes: ['nostalgia'], totalRuns: 0 },
+                
+                // DATA
+                selectedTime: null,
+                selectedRooms: [],
+                rooms: [
+                    { id: 'kitchen', name: 'KITCHEN', zone: 'Kitchen' },
+                    { id: 'living', name: 'LIVING', zone: 'Living' },
+                    { id: 'bed', name: 'BEDROOM', zone: 'Bedroom' },
+                    { id: 'bath', name: 'BATHROOM', zone: 'Bathroom' },
+                    { id: 'closet', name: 'CLOSET', zone: 'Closet' }
+                ],
+                plan: [],
+                themeList: THEME_DB,
+                toasts: [],
+                savedRuns: [],
+
+                // MISSION RUNTIME
+                currentMissionIndex: 0,
+                currentMission: {},
+                timeLeft: 0,
+                totalTime: 0,
+                timeProgress: 100,
+                isTimerRunning: false,
+                isPaused: false,
+                missionJustCompleted: false,
+                timerInterval: null,
+                
+                // SCORING
+                completedMissions: 0,
+                runSessionPoints: 0,
+                runReward: '',
+                runEndedEarly: false,
+                
+                // CO-OP
+                coop: { partnerName: '', playerADone: false, playerBDone: false, complimentA: '', complimentB: '' },
+
+                // SENSORS & DEBUG
+                webcamStream: null,
+                activityScore: 0,
+                idleSeconds: 0,
+                idleWarning: false,
+                webcamError: '',
+                _motionRunning: false,
+                privacyMsg: 'System politely looking away.',
+                debug: { rawActivity: 0 },
+
+                // MODALS
+                modals: { stop: false, webcam: false, home: false },
+
+                init() {
+                    // Load all local storage
+                    const load = (k) => { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; };
+                    this.settings = { ...this.settings, ...load('zero_settings') };
+                    this.privacy = { ...this.privacy, ...load('zero_privacy') };
+                    this.savedRuns = load('zero_runs') || [];
+                    this.user = { ...this.user, ...load('zero_user') };
+                    const prog = load('zero_progression');
+                    if (prog) this.progression = prog;
+
+                    window.addEventListener('keydown', (e) => this.handleKey(e));
+                },
+
+                handleKey(e) {
+                    if (e.target.tagName === 'INPUT') return;
+                    if (e.code === 'Space' && this.currentView === 'mission') { e.preventDefault(); this.toggleTimer(); }
+                    if (e.code === 'Escape') { this.modals.stop = false; this.modals.home = false; }
+                },
+
+                // === NAVIGATION ===
+                setMode(m) { this.mode = m; playSound('tick'); },
+                setTime(t) { this.selectedTime = t; playSound('tick'); },
+                toggleRoom(id) {
+                    this.selectedRooms.includes(id) ? this.selectedRooms = this.selectedRooms.filter(r=>r!==id) : this.selectedRooms.push(id);
+                    playSound('tick');
+                },
+                goHome() {
+                    if (this.currentView === 'start') return;
+                    if (this.currentView === 'mission' || this.currentView === 'contract') {
+                        this.isTimerRunning = false; clearInterval(this.timerInterval); this.isPaused = true;
+                        this.modals.home = true;
+                    } else {
+                        this.currentView = 'start';
+                    }
+                },
+                confirmHome() {
+                    this.stopWebcam();
+                    this.runEndedEarly = true;
+                    this.modals.home = false;
+                    this.currentView = 'start';
+                },
+
+                // === PLAN GENERATION (IMPROVED) ===
+                generatePlan() {
+                    let available = [...MISSION_DB];
+                    let plan = [];
+                    let timeUsed = 0;
+                    
+                    // 1. Cap global tasks to 30% or 10 mins
+                    let maxGlobal = Math.min(this.selectedTime * 0.3, 10);
+                    let trash = available.find(m => m.id === 'm1');
+                    
+                    if (trash && (timeUsed + trash.duration <= maxGlobal)) {
+                        plan.push(trash);
+                        timeUsed += trash.duration;
+                    }
+
+                    // 2. Distribute remainder to rooms
+                    let remainingTime = this.selectedTime - timeUsed;
+                    // Ensure at least one mission per room if time allows
+                    this.selectedRooms.forEach(rid => {
+                        let roomDef = this.rooms.find(r => r.id === rid);
+                        let match = available.find(m => m.zone === roomDef.zone && !plan.includes(m));
+                        // Relaxed constraint: allow if it fits in total remaining, but try to balance
+                        if (match && (timeUsed + match.duration <= this.selectedTime)) {
+                            plan.push(match);
+                            timeUsed += match.duration;
+                        }
+                    });
+
+                    // 3. Fill with Polish if space
+                    if (timeUsed < this.selectedTime) {
+                         let polish = available.find(m => m.id === 'm9');
+                         if (polish && !plan.includes(polish)) plan.push(polish);
+                    }
+
+                    this.plan = plan;
+                    this.mode === 'coop' ? this.currentView = 'contract' : this.startRun();
+                },
+
+                resetMap() { this.selectedTime = null; this.selectedRooms = []; },
+
+                // === RUNTIME ===
+                startRun() {
+                    this.currentMissionIndex = 0;
+                    this.completedMissions = 0;
+                    this.runSessionPoints = 0;
+                    this.runEndedEarly = false;
+                    this.coop.playerADone = false; this.coop.playerBDone = false;
+                    
+                    localStorage.setItem('zero_user', JSON.stringify(this.user));
+                    this.loadMission(0);
+                    this.currentView = 'mission';
+                    playSound('start');
+                },
+
+                loadMission(idx) {
+                    this.currentMission = this.plan[idx];
+                    // Test mode uses 10s, else real duration
+                    let duration = this.settings.testMode ? 10 : (this.currentMission.duration * 60);
+                    
+                    this.timeLeft = duration;
+                    this.totalTime = duration;
+                    this.timeProgress = 100;
+                    this.isTimerRunning = false;
+                    this.isPaused = false;
+                    this.missionJustCompleted = false;
+                    this.coop.playerADone = false; this.coop.playerBDone = false;
+                    this.idleSeconds = 0; this.idleWarning = false;
+
+                    if (this.privacy.webcamEnabled) this.$nextTick(() => this.enableWebcam());
+                },
+
+                toggleTimer() {
+                    if (this.isTimerRunning) {
+                        clearInterval(this.timerInterval); this.isTimerRunning = false; this.isPaused = true;
+                    } else {
+                        this.isTimerRunning = true; this.isPaused = false; playSound('tick');
+                        this.timerInterval = setInterval(() => this.tick(), 1000);
+                        if (this.privacy.webcamEnabled && !this._motionRunning) this.startMotionDetection();
+                    }
+                },
+
+                tick() {
+                    if (this.timeLeft > 0) {
+                        this.timeLeft--;
+                        this.timeProgress = (this.timeLeft / this.totalTime) * 100;
+                        if (this.timeLeft === 5 && !this.settings.testMode) playSound('alert');
+                    } else {
+                        this.completeMissionLogic();
+                    }
+                },
+
+                finishEarly() {
+                    // Solo finish early
+                    this.completeMissionLogic();
+                },
+
+                toggleCoopDone(player) {
+                    if (player === 'A') this.coop.playerADone = !this.coop.playerADone;
+                    if (player === 'B') this.coop.playerBDone = !this.coop.playerBDone;
+                    playSound('tick');
+                    if (this.coop.playerADone && this.coop.playerBDone) this.completeMissionLogic();
+                },
+
+                // === STOP/ABORT ===
+                openStopModal() {
+                    this.isTimerRunning = false; clearInterval(this.timerInterval); this.isPaused = true;
+                    this.modals.stop = true;
+                },
+                confirmStop(action) {
+                    this.modals.stop = false;
+                    if (action === 'complete') this.completeMissionLogic();
+                    else {
+                        this.missionJustCompleted = true; this.isPaused = false; this.runEndedEarly = true;
+                    }
+                },
+
+                completeMissionLogic() {
+                    clearInterval(this.timerInterval);
+                    this.isTimerRunning = false; this.isPaused = false; this.missionJustCompleted = true;
+                    this.completedMissions++;
+                    // Points logic
+                    let points = this.currentMission.duration * 5; 
+                    this.runSessionPoints += points;
+                    playSound('complete');
+                },
+
+                nextMission() {
+                    if (this.currentMissionIndex < this.plan.length - 1) this.loadMission(this.currentMissionIndex + 1);
+                    else this.endRun();
+                },
+
+                skipMission() {
+                    // Dev tool
+                    this.completeMissionLogic();
+                    setTimeout(() => this.nextMission(), 500);
+                },
+
+                endRun() {
+                    this.stopWebcam();
+                    this.progression.protocolPoints += this.runSessionPoints;
+                    this.progression.totalRuns++;
+                    this.checkUnlocks();
+                    localStorage.setItem('zero_progression', JSON.stringify(this.progression));
+                    this.currentView = 'summary';
+                    playSound('start');
+                },
+
+                // === SAVING & HISTORY ===
+                saveAndExit() {
+                    let runData = {
+                        id: Date.now(), date: new Date().toISOString(),
+                        mode: this.mode, missions: this.completedMissions, points: this.runSessionPoints,
+                        endedEarly: this.runEndedEarly, reward: this.runReward,
+                        coop: this.mode === 'coop' ? { ...this.coop } : null
+                    };
+                    this.savedRuns.unshift(runData);
+                    localStorage.setItem('zero_runs', JSON.stringify(this.savedRuns));
+                    this.currentView = 'start';
+                },
+                deleteRun(index) {
+                    if(confirm("Delete this log entry?")) {
+                        this.savedRuns.splice(index, 1);
+                        localStorage.setItem('zero_runs', JSON.stringify(this.savedRuns));
+                    }
+                },
+                clearHistory() {
+                    if(confirm("PERMANENTLY DELETE ALL HISTORY?")) {
+                        this.savedRuns = [];
+                        localStorage.setItem('zero_runs', JSON.stringify([]));
+                    }
+                },
+
+                // === UNLOCKS ===
+                isThemeUnlocked(id) { return this.settings.devMode || this.progression.unlockedThemes.includes(id); },
+                toggleDevMode() { this.settings.devMode = !this.settings.devMode; },
+                
+                selectTheme(id) {
+                    if (this.isThemeUnlocked(id)) {
+                        this.settings.theme = id;
+                        localStorage.setItem('zero_settings', JSON.stringify(this.settings));
+                        playSound('tick');
+                    } else {
+                        playSound('alert');
+                        this.showToast("LOCKED", "Earn more points to unlock.", "error");
+                    }
+                },
+                setThemeMode(m) {
+                    this.settings.themeMode = m;
+                    localStorage.setItem('zero_settings', JSON.stringify(this.settings));
+                },
+
+                checkUnlocks() {
+                    THEME_DB.forEach(theme => {
+                        if (!this.progression.unlockedThemes.includes(theme.id) && this.progression.protocolPoints >= theme.unlockScore) {
+                            this.progression.unlockedThemes.push(theme.id);
+                            this.showToast("UNLOCK", `${theme.name} Theme Available`, "unlock");
+                            playSound('unlock');
+                        }
+                    });
+                },
+
+                showToast(title, msg, type = 'normal') {
+                    const id = Date.now();
+                    const icon = type === 'unlock' ? '🔓' : (type === 'error' ? '🔒' : 'ℹ️');
+                    this.toasts.push({ id, title, msg, type, icon });
+                    setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 3000);
+                },
+
+                // === SENSORS ===
+                toggleSound() {
+                    this.settings.soundEnabled = !this.settings.soundEnabled;
+                    localStorage.setItem('zero_settings', JSON.stringify(this.settings));
+                },
+                togglePrivacy(type) {
+                    if (type === 'webcam') {
+                        this.privacy.webcamEnabled = !this.privacy.webcamEnabled;
+                        if (!this.privacy.webcamEnabled) this.stopWebcam();
+                    }
+                    if (type === 'mic') this.privacy.micEnabled = !this.privacy.micEnabled;
+                    localStorage.setItem('zero_privacy', JSON.stringify(this.privacy));
+                },
+                enableWebcamFromModal() {
+                    this.togglePrivacy('webcam'); this.modals.webcam = false; this.enableWebcam();
+                },
+
+                async enableWebcam() {
+                    if (!this.privacy.webcamEnabled) return;
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: false });
+                        this.webcamStream = stream;
+                        this.$nextTick(() => {
+                            if (this.$refs.cam) {
+                                this.$refs.cam.srcObject = stream;
+                                this.startMotionDetection();
+                            }
+                        });
+                        this.webcamError = '';
+                    } catch (e) {
+                        this.webcamError = 'PERMISSION DENIED';
+                        this.privacy.webcamEnabled = false;
+                    }
+                },
+                stopWebcam() {
+                    if (this.webcamStream) { this.webcamStream.getTracks().forEach(t => t.stop()); this.webcamStream = null; }
+                    this._motionRunning = false;
+                },
+                startMotionDetection() {
+                    if (this._motionRunning) return;
+                    this._motionRunning = true;
+                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                    const w = 64; const h = 48; canvas.width = w; canvas.height = h;
+                    let prevData = null;
+
+                    const loop = () => {
+                        if (!this._motionRunning || !this.$refs.cam) return;
+                        try {
+                            ctx.drawImage(this.$refs.cam, 0, 0, w, h);
+                            const imgData = ctx.getImageData(0, 0, w, h).data;
+                            if (prevData) {
+                                let raw = 0;
+                                for (let i = 0; i < imgData.length; i += 16) raw += Math.abs(imgData[i] - prevData[i]);
+                                let rawScore = Math.min(100, Math.floor(raw / 500));
+                                this.debug.rawActivity = rawScore;
+                                
+                                // SMOOTHING
+                                this.activityScore = Math.round((this.activityScore * 0.8) + (rawScore * 0.2));
+
+                                if (this.isTimerRunning && !this.isPaused) {
+                                    if (this.activityScore < 5) this.idleSeconds++;
+                                    else { this.idleSeconds = 0; this.idleWarning = false; }
+                                    if (this.idleSeconds > 30) {
+                                        this.idleWarning = true;
+                                        if (this.idleSeconds % 5 === 0) playSound('alert');
+                                    }
+                                }
+                            }
+                            prevData = imgData;
+                            requestAnimationFrame(loop);
+                        } catch (e) { requestAnimationFrame(loop); }
+                    };
+                    loop();
+                },
+                clearData() {
+                    if(confirm("WIPE ALL DATA?")) { localStorage.clear(); window.location.reload(); }
+                },
+                formatTime(s) {
+                    const m = Math.floor(s / 60); const sec = s % 60;
+                    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
