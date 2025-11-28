@@ -18,13 +18,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
     <style>
-        /* === THEME MATRIX v4.1 === */
-        :root {
-            --font-head: 'Press Start 2P', cursive;
-            --font-body: 'Space Mono', monospace;
-            --radius: 0px;
-            --border: 2px;
-        }
+        /* === THEME MATRIX v4.3 === */
+        :root { --font-head: 'Press Start 2P', cursive; --font-body: 'Space Mono', monospace; --radius: 0px; --border: 2px; }
 
         /* THEMES */
         .theme-nostalgia.mode-dark { --bg: #0F0F1B; --panel: #1a1a2e; --accent: #00F5D4; --alert: #FF595E; --text: #E0E0E0; --dim: #6b7280; }
@@ -45,7 +40,7 @@
         .theme-london.mode-dark { --bg: #2b2d42; --panel: #3d405b; --accent: #e07a5f; --alert: #ef233c; --text: #edf2f4; --dim: #8d99ae; }
         .theme-london.mode-light { --bg: #f4f1de; --panel: #e07a5f; --accent: #3d405b; --alert: #e07a5f; --text: #3d405b; --dim: #81b29a; }
 
-        body { background-color: var(--bg); color: var(--text); font-family: var(--font-body); transition: all 0.3s ease; overflow: hidden; height: 100vh; }
+        body { background-color: var(--bg); color: var(--text); font-family: var(--font-body); transition: all 0.3s ease; overflow: hidden; height: 100vh; margin: 0; }
         h1, h2, h3, .heading-font { font-family: var(--font-head); text-transform: uppercase; }
         
         .scanlines {
@@ -73,17 +68,14 @@
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
-        /* Photo Grid */
         .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; }
         .photo-slot { aspect-ratio: 1; background: #000; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid var(--dim); border-radius: var(--radius); }
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
         .watermark { position: absolute; bottom: 4px; right: 4px; font-size: 8px; color: rgba(255,255,255,0.7); font-family: 'Space Mono'; pointer-events: none; text-shadow: 0 1px 2px black; }
 
-        /* UI Scaling Container */
-        #app-container {
-            width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden;
-            transform-origin: top center; transition: transform 0.2s ease;
-        }
+        #ui-wrapper { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; }
+        #app-container { width: 100%; max-width: 28rem; height: 100%; overflow-y: auto; overflow-x: hidden; transform-origin: top center; transition: transform 0.2s ease; }
+        .icon { width: 1.25rem; height: 1.25rem; fill: currentColor; }
     </style>
 </head>
 
@@ -103,344 +95,377 @@
         </template>
     </div>
 
-    <div id="app-container" :style="`transform: scale(${settings.uiScale}); width: ${100/settings.uiScale}%; height: ${100/settings.uiScale}%;`">
-        <div class="max-w-md mx-auto min-h-screen flex flex-col p-4 pb-20 relative">
+    <div id="ui-wrapper">
+        <div id="app-container" :style="`transform: scale(${settings.uiScale});`">
+            <div class="flex flex-col p-4 pb-20 min-h-screen relative">
 
-            <header class="flex justify-between items-end mb-6 border-b border-[var(--dim)] pb-2">
-                <div>
-                    <h1 class="text-sm md:text-lg text-[var(--accent)] heading-font">ZERO</h1>
-                    <p class="text-[10px] text-[var(--dim)] font-mono">V<span x-text="appVersion"></span> // <span x-text="getRankTitle()"></span></p>
-                </div>
-                <div class="text-right flex items-center gap-3">
-                    <div class="text-right">
-                        <div class="text-[10px] font-bold text-[var(--accent)]">LVL <span x-text="prestige.level"></span></div>
-                        <div class="w-16 h-1 bg-[var(--dim)] rounded-full overflow-hidden">
-                            <div class="h-full bg-[var(--accent)]" :style="`width: ${(prestige.xp / prestige.nextLevelXp) * 100}%`"></div>
-                        </div>
+                <header class="flex justify-between items-end mb-6 border-b border-[var(--dim)] pb-2">
+                    <div>
+                        <h1 class="text-sm md:text-lg text-[var(--accent)] heading-font">ZERO</h1>
+                        <p class="text-[10px] text-[var(--dim)] font-mono">V<span x-text="appVersion"></span> // <span x-text="getRankTitle()"></span></p>
                     </div>
-                    <button @click="toggleMute()" class="text-lg hover:text-[var(--accent)]" :title="settings.muted ? 'Unmute' : 'Mute'">
-                        <span x-text="settings.muted ? '🔇' : '🔊'"></span>
-                    </button>
-                    <button @click="goHome()" class="text-lg hover:text-[var(--accent)]" title="Home">🏠</button>
-                    <button @click="dev.active = !dev.active" class="text-xs font-mono border border-[var(--dim)] px-1 hover:text-[var(--accent)]">&lt;/&gt;</button>
-                    <button @click="view='about'" class="text-xs border px-2 py-1 border-[var(--dim)] hover:text-[var(--accent)]">ABOUT</button>
-                </div>
-            </header>
-
-            <div x-show="dev.active" x-cloak class="fixed inset-x-0 top-16 mx-auto max-w-md z-50 px-4 slide-up">
-                <div class="panel p-4 shadow-2xl bg-[var(--bg)] border-2 border-[var(--accent)]">
-                    <div class="flex justify-between items-center mb-2 border-b border-[var(--dim)] pb-1">
-                        <h3 class="text-xs text-[var(--accent)] font-bold">DEV CONSOLE</h3>
-                        <button @click="dev.active = false" class="text-xs">CLOSE</button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-[10px]">
-                        <button @click="dev.fastMode = !dev.fastMode" class="border p-2" :class="dev.fastMode?'bg-[var(--accent)] text-[var(--bg)]':''">FAST TIMERS (10s)</button>
-                        <button @click="addXp(500)" class="border p-2">+500 XP</button>
-                        <button @click="playSound('start')" class="border p-1">TEST START</button>
-                        <button @click="playSound('complete')" class="border p-1">TEST END</button>
-                        <div x-show="view === 'mission'" class="col-span-2">
-                            <button @click="finishMission()" class="btn btn-danger py-1 text-[10px]">FORCE FINISH MISSION</button>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-[10px] font-mono text-[var(--dim)]">
-                        XP: <span x-text="prestige.xp"></span> | CAM: <span x-text="settings.cameraEnabled"></span>
-                    </div>
-                </div>
-            </div>
-
-            <template x-if="view === 'start'">
-                <div class="flex-1 flex flex-col justify-center space-y-6 slide-up">
-                    <div class="panel p-6 text-center">
-                        <h2 class="text-sm mb-4 text-[var(--accent)] heading-font" x-text="t('welcome')"></h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-[10px] block mb-1 text-[var(--dim)]">OPERATOR A</label>
-                                <input type="text" x-model="user.name" class="w-full bg-transparent border-b border-[var(--dim)] p-2 text-center font-mono focus:border-[var(--accent)] outline-none">
+                    <div class="text-right flex items-center gap-3">
+                        <div class="text-right hidden sm:block">
+                            <div class="text-[10px] font-bold text-[var(--accent)]">LVL <span x-text="prestige.level"></span></div>
+                            <div class="w-16 h-1 bg-[var(--dim)] rounded-full overflow-hidden">
+                                <div class="h-full bg-[var(--accent)]" :style="`width: ${(prestige.xp / prestige.nextLevelXp) * 100}%`"></div>
                             </div>
-                            <div class="flex gap-2">
-                                <button @click="setMode('solo')" :class="mode==='solo' ? 'btn' : 'btn-outline'" class="flex-1 text-xs">SOLO</button>
-                                <button @click="setMode('coop')" :class="mode==='coop' ? 'btn' : 'btn-outline'" class="flex-1 text-xs">CO-OP</button>
-                            </div>
-                            <div x-show="mode === 'coop'" class="slide-up">
-                                <label class="text-[10px] block mb-1 text-[var(--dim)]">OPERATOR B</label>
-                                <input type="text" x-model="coop.partner" class="w-full bg-transparent border-b border-[var(--dim)] p-2 text-center font-mono outline-none">
+                        </div>
+                        <button @click="toggleMute()" class="p-1 hover:text-[var(--accent)]" :title="settings.muted ? 'Unmute' : 'Mute'">
+                            <svg class="icon" viewBox="0 0 24 24" x-show="!settings.muted"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                            <svg class="icon" viewBox="0 0 24 24" x-show="settings.muted"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                        </button>
+                        <button @click="goHome()" class="p-1 hover:text-[var(--accent)]" title="Home">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        </button>
+                        <button @click="dev.active = !dev.active" class="text-xs font-mono border border-[var(--dim)] px-1 hover:text-[var(--accent)]" title="Dev Tools">&lt;/&gt;</button>
+                        <button @click="view='about'" class="text-xs border px-2 py-1 border-[var(--dim)] hover:text-[var(--accent)] font-bold">ABOUT</button>
+                    </div>
+                </header>
+
+                <div x-show="dev.active" x-cloak class="fixed inset-x-0 top-16 mx-auto max-w-md z-50 px-4 slide-up">
+                    <div class="panel p-4 shadow-2xl bg-[var(--bg)] border-2 border-[var(--accent)]">
+                        <div class="flex justify-between items-center mb-2 border-b border-[var(--dim)] pb-1">
+                            <h3 class="text-xs text-[var(--accent)] font-bold">DEV CONSOLE</h3>
+                            <button @click="dev.active = false" class="text-xs">CLOSE</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px]">
+                            <button @click="dev.fastMode = !dev.fastMode" class="border p-2" :class="dev.fastMode?'bg-[var(--accent)] text-[var(--bg)]':''">FAST TIMERS (10s)</button>
+                            <button @click="addXp(500)" class="border p-2">+500 XP</button>
+                            <button @click="playSound('start')" class="border p-1">TEST START</button>
+                            <button @click="playSound('complete')" class="border p-1">TEST END</button>
+                            <div x-show="view === 'mission'" class="col-span-2">
+                                <button @click="finishMission()" class="btn btn-danger py-1 text-[10px]">FORCE FINISH MISSION</button>
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button @click="view = 'settings'" class="btn-outline py-3 text-xs">SETTINGS</button>
-                        <button @click="view = 'history'" class="btn-outline py-3 text-xs">LOGS</button>
-                    </div>
-                    <button @click="goToMap()" class="btn py-4 text-sm shadow-lg animate-pulse" x-text="t('init')"></button>
                 </div>
-            </template>
 
-            <template x-if="view === 'map'">
-                <div class="flex-1 flex flex-col space-y-6 slide-up">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xs heading-font">PARAMETERS</h2>
-                        <button @click="view = 'start'" class="text-[10px] border border-[var(--dim)] px-2 py-1">BACK</button>
-                    </div>
-                    <div class="space-y-2">
-                        <p class="text-[10px] text-[var(--dim)] uppercase">Duration</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <template x-for="t in [5, 10, 15, 30, 45, 60]">
-                                <button @click="setDuration(t)" 
-                                    :class="selectedDuration === t ? 'bg-[var(--accent)] text-[var(--bg)]' : 'border border-[var(--dim)] text-[var(--dim)]'"
-                                    class="p-2 text-xs font-bold rounded-[var(--radius)] transition-all" x-text="t+'m'"></button>
-                            </template>
+                <template x-if="view === 'start'">
+                    <div class="flex-1 flex flex-col justify-center space-y-6 slide-up">
+                        <div class="panel p-6 text-center">
+                            <h2 class="text-sm mb-4 text-[var(--accent)] heading-font" x-text="t('welcome')"></h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[10px] block mb-1 text-[var(--dim)]">OPERATOR A</label>
+                                    <input type="text" x-model="user.name" class="w-full bg-transparent border-b border-[var(--dim)] p-2 text-center font-mono focus:border-[var(--accent)] outline-none">
+                                </div>
+                                <div class="flex gap-2">
+                                    <button @click="setMode('solo')" :class="mode==='solo' ? 'btn' : 'btn-outline'" class="flex-1 text-xs">SOLO</button>
+                                    <button @click="setMode('coop')" :class="mode==='coop' ? 'btn' : 'btn-outline'" class="flex-1 text-xs">CO-OP</button>
+                                </div>
+                                <div x-show="mode === 'coop'" class="slide-up">
+                                    <label class="text-[10px] block mb-1 text-[var(--dim)]">OPERATOR B</label>
+                                    <input type="text" x-model="coop.partner" class="w-full bg-transparent border-b border-[var(--dim)] p-2 text-center font-mono outline-none">
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="space-y-2">
-                        <p class="text-[10px] text-[var(--dim)] uppercase">Sectors</p>
                         <div class="grid grid-cols-2 gap-3">
-                            <template x-for="z in zones" :key="z.id">
-                                <button @click="toggleZone(z.id)" 
-                                    class="p-3 border transition-all text-center rounded-[var(--radius)] relative"
-                                    :class="selectedZones.includes(z.id) ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text)]' : 'border-[var(--dim)] text-[var(--dim)]'">
-                                    <span x-text="z.name" class="text-[10px] font-bold"></span>
-                                    <div x-show="selectedZones.includes(z.id)" class="absolute top-1 right-1 text-[var(--accent)] text-[8px]">●</div>
-                                </button>
-                            </template>
+                            <button @click="view = 'settings'" class="btn-outline py-3 text-xs">SETTINGS</button>
+                            <button @click="view = 'history'" class="btn-outline py-3 text-xs">LOGS</button>
                         </div>
+                        <button @click="goToMap()" class="btn py-4 text-sm shadow-lg animate-pulse" x-text="t('init')"></button>
                     </div>
-                    <div class="mt-auto pt-4 space-y-2">
-                        <button @click="generatePlan()" :disabled="!selectedDuration || selectedZones.length === 0" class="btn py-4 shadow-lg">GENERATE MISSION</button>
-                        <div class="text-center text-[10px] text-[var(--dim)]" x-text="t('plan_hint')"></div>
-                    </div>
-                </div>
-            </template>
+                </template>
 
-            <template x-if="view === 'mission'">
-                <div class="flex-1 flex flex-col h-full relative">
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="text-[10px] text-[var(--dim)]">TASK <span x-text="missionIndex + 1"></span>/<span x-text="plan.length"></span></div>
-                        <div class="text-[10px] text-[var(--dim)] font-bold" x-text="mode.toUpperCase()"></div>
-                    </div>
-                    
-                    <h2 class="text-sm md:text-lg heading-font leading-tight mb-4" x-text="currentTask.title"></h2>
-
-                    <div class="mb-4 panel bg-black p-6 relative overflow-hidden text-center">
-                        <div class="absolute top-0 left-0 h-full bg-[var(--accent)] opacity-20 transition-all duration-1000 linear" :style="`width: ${timer.progress}%`"></div>
-                        <div class="relative z-10 text-4xl md:text-5xl font-mono tracking-widest text-white" 
-                             :class="timer.val < 60 && timer.running ? 'text-[var(--alert)] animate-pulse' : ''"
-                             x-text="formatTime(timer.val)"></div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div x-show="!settings.cameraEnabled" class="border border-[var(--dim)] p-3 text-center rounded-[var(--radius)] mb-2 bg-[var(--panel)]">
-                            <div class="text-[10px] text-[var(--dim)] italic" x-text="t('privacy_active')"></div>
-                        </div>
-
-                        <div x-show="settings.cameraEnabled && !cam.stream && !cam.capturedPhoto" class="mb-2">
-                            <div x-show="!currentTask.hasBeforePhoto" class="panel p-3 mb-2 flex justify-between items-center bg-[var(--bg)]">
-                                <div class="text-[10px] font-bold">STARTING PHOTO?</div>
-                                <button @click="startCam('before')" class="btn-outline px-3 py-1 text-[10px]">OPEN CAMERA</button>
-                            </div>
-                            <div x-show="currentTask.hasBeforePhoto" class="border border-[var(--dim)] p-2 text-center rounded-[var(--radius)]">
-                                <img :src="getPhotoForCurrentTask('before')" class="h-24 w-full object-cover opacity-50 rounded-[var(--radius)]">
-                                <div class="text-[8px] text-[var(--dim)] mt-1">BEFORE PHOTO CAPTURED</div>
-                            </div>
-                        </div>
-
-                        <div x-show="cam.stream" class="relative panel bg-black h-64 overflow-hidden mb-2 rounded-[var(--radius)]">
-                            <video x-ref="video" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                            <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-4 z-30">
-                                <button @click="flipCam()" class="bg-gray-800 text-white p-3 rounded-full shadow-lg border border-gray-600">↻</button>
-                                <button @click="capturePhoto()" class="bg-white border-4 border-gray-300 w-16 h-16 rounded-full shadow-lg"></button>
-                                <button @click="stopCam()" class="bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold">CLOSE</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto mb-4 space-y-2">
-                        <div class="panel p-3 border-l-4 border-[var(--accent)]">
-                            <h3 class="text-[10px] text-[var(--accent)] mb-1 font-bold">OBJECTIVE</h3>
-                            <p class="text-xs" x-text="currentTask.objective"></p>
-                        </div>
-                    </div>
-
-                    <div class="mt-auto space-y-3">
-                        <div x-show="mode === 'coop'" class="grid grid-cols-2 gap-3">
-                            <button @click="toggleCoop('A')" :class="coop.doneA ? 'btn' : 'btn-outline'" class="py-3 text-[10px]">
-                                <span x-text="user.name"></span> DONE <span x-show="coop.doneA">✓</span>
-                            </button>
-                            <button @click="toggleCoop('B')" :class="coop.doneB ? 'btn' : 'btn-outline'" class="py-3 text-[10px]">
-                                <span x-text="coop.partner"></span> DONE <span x-show="coop.doneB">✓</span>
-                            </button>
-                        </div>
-
-                        <div x-show="!timer.running && !timer.paused" class="w-full">
-                            <button @click="startTimer()" class="btn py-4 shadow-lg text-sm">START TIMER</button>
-                        </div>
-
-                        <div x-show="timer.running || timer.paused" class="grid grid-cols-2 gap-3">
-                            <button @click="toggleTimer()" class="btn-outline py-4 text-xs font-bold" x-text="timer.running ? 'PAUSE' : 'RESUME'"></button>
-                            <button @click="finishEarly()" class="btn py-4 text-xs font-bold">FINISH EARLY</button>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <template x-if="view === 'summary'">
-                <div class="flex-1 flex flex-col justify-center text-center space-y-6 slide-up">
-                    <h2 class="text-xl heading-font text-[var(--accent)]" x-text="t('mission_complete')"></h2>
-                    
-                    <div class="panel p-6 text-left space-y-4 shadow-lg">
-                        <div class="flex justify-between border-b border-[var(--dim)] pb-2">
-                            <span class="text-xs text-[var(--dim)]">TASKS</span>
-                            <span class="font-bold font-mono" x-text="plan.length"></span>
-                        </div>
-                        <div class="flex justify-between border-b border-[var(--dim)] pb-2">
-                            <span class="text-xs text-[var(--dim)]">XP EARNED</span>
-                            <span class="font-bold font-mono text-[var(--accent)]">+<span x-text="sessionXp"></span></span>
-                        </div>
-                    </div>
-
-                    <div x-show="currentRunPhotos.length > 0" class="text-left">
-                        <p class="text-[10px] text-[var(--dim)] mb-2">EVIDENCE LOG</p>
-                        <div class="photo-grid">
-                            <template x-for="p in currentRunPhotos">
-                                <div class="photo-slot">
-                                    <img :src="p.data">
-                                    <div class="watermark" x-text="p.type.toUpperCase()"></div>
-                                </div>
-                            </template>
-                        </div>
-                        <div class="text-[8px] text-[var(--dim)] mt-1 text-center">Saved locally.</div>
-                    </div>
-
-                    <button @click="saveRun()" class="btn py-4 font-bold mt-4">SAVE & EXIT</button>
-                </div>
-            </template>
-
-            <template x-if="view === 'settings'">
-                <div class="flex-1 flex flex-col space-y-6 slide-up">
-                    <div class="flex justify-between items-center border-b border-[var(--dim)] pb-2">
-                        <h2 class="text-xs heading-font">SETTINGS</h2>
-                        <button @click="view = 'start'" class="text-[10px] border border-[var(--dim)] px-2">CLOSE</button>
-                    </div>
-                    <div class="space-y-6 overflow-y-auto max-h-[75vh] pr-2">
-                        <div class="space-y-2">
-                            <h3 class="text-[10px] text-[var(--accent)] font-bold">UI SCALE</h3>
-                            <div class="flex gap-1 justify-between">
-                                <button @click="setUiScale(0.9)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===0.9?'bg-[var(--text)] text-[var(--bg)]':''">S</button>
-                                <button @click="setUiScale(1.0)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===1.0?'bg-[var(--text)] text-[var(--bg)]':''">M</button>
-                                <button @click="setUiScale(1.15)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===1.15?'bg-[var(--text)] text-[var(--bg)]':''">L</button>
-                                <button @click="setUiScale(1.3)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===1.3?'bg-[var(--text)] text-[var(--bg)]':''">XL</button>
-                            </div>
+                <template x-if="view === 'map'">
+                    <div class="flex-1 flex flex-col space-y-6 slide-up">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xs heading-font">PARAMETERS</h2>
+                            <button @click="view = 'start'" class="text-[10px] border border-[var(--dim)] px-2 py-1">BACK</button>
                         </div>
                         <div class="space-y-2">
-                            <h3 class="text-[10px] text-[var(--accent)] font-bold">CAMERA</h3>
-                            <button @click="toggleCamera()" class="btn-outline w-full py-2 text-xs" :class="settings.cameraEnabled ? 'border-[var(--accent)] text-[var(--accent)]' : ''" x-text="settings.cameraEnabled ? 'ENABLED' : 'DISABLED (PRIVACY)'"></button>
-                            <p class="text-[8px] text-[var(--dim)]" x-text="settings.cameraEnabled ? 'Photos enabled. Stored locally.' : 'Camera features disabled.'"></p>
-                        </div>
-                        <div class="space-y-2">
-                            <h3 class="text-[10px] text-[var(--accent)] font-bold">NARRATIVE</h3>
+                            <p class="text-[10px] text-[var(--dim)] uppercase">Duration</p>
                             <div class="grid grid-cols-3 gap-2">
-                                <button @click="setNarrative('tactical')" :class="settings.narrative==='tactical'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="p-2 text-[10px]">TACTICAL</button>
-                                <button @click="setNarrative('neutral')" :class="settings.narrative==='neutral'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="p-2 text-[10px]">NEUTRAL</button>
-                                <button @click="setNarrative('positive')" :class="settings.narrative==='positive'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="p-2 text-[10px]">POSITIVE</button>
+                                <template x-for="t in [5, 10, 15, 30, 45, 60]">
+                                    <button @click="setDuration(t)" 
+                                        :class="selectedDuration === t ? 'bg-[var(--accent)] text-[var(--bg)]' : 'border border-[var(--dim)] text-[var(--dim)]'"
+                                        class="p-2 text-xs font-bold rounded-[var(--radius)] transition-all" x-text="t+'m'"></button>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="text-[10px] text-[var(--dim)] uppercase">Sectors</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <template x-for="z in zones" :key="z.id">
+                                    <button @click="toggleZone(z.id)" 
+                                        class="p-3 border transition-all text-center rounded-[var(--radius)] relative"
+                                        :class="selectedZones.includes(z.id) ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text)]' : 'border-[var(--dim)] text-[var(--dim)]'">
+                                        <span x-text="z.name" class="text-[10px] font-bold"></span>
+                                        <div x-show="selectedZones.includes(z.id)" class="absolute top-1 right-1 text-[var(--accent)] text-[8px]">●</div>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="mt-auto pt-4 space-y-2">
+                            <button @click="generatePlan()" :disabled="!selectedDuration || selectedZones.length === 0" class="btn py-4 shadow-lg">GENERATE MISSION</button>
+                            <div class="text-center text-[10px] text-[var(--dim)]" x-text="t('plan_hint')"></div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="view === 'mission'">
+                    <div class="flex-1 flex flex-col h-full relative">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-[10px] text-[var(--dim)]">TASK <span x-text="missionIndex + 1"></span>/<span x-text="plan.length"></span></div>
+                            <div class="text-[10px] text-[var(--dim)] font-bold" x-text="mode.toUpperCase()"></div>
+                        </div>
+                        
+                        <h2 class="text-sm md:text-lg heading-font leading-tight mb-4" x-text="currentTask.title"></h2>
+
+                        <div class="mb-4 panel bg-black p-6 relative overflow-hidden text-center">
+                            <div class="absolute top-0 left-0 h-full bg-[var(--accent)] opacity-20 transition-all duration-1000 linear" :style="`width: ${timer.progress}%`"></div>
+                            <div class="relative z-10 text-4xl md:text-5xl font-mono tracking-widest text-white" 
+                                 :class="timer.val < 60 && timer.running ? 'text-[var(--alert)] animate-pulse' : ''"
+                                 x-text="formatTime(timer.val)"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div x-show="!settings.cameraEnabled" class="border border-[var(--dim)] p-3 text-center rounded-[var(--radius)] mb-2 bg-[var(--panel)]">
+                                <div class="text-[10px] text-[var(--dim)] italic" x-text="t('privacy_active')"></div>
+                            </div>
+
+                            <div x-show="settings.cameraEnabled && !cam.stream && !cam.capturedPhoto" class="mb-2">
+                                <div x-show="!currentTask.hasBeforePhoto" class="panel p-3 mb-2 flex justify-between items-center bg-[var(--bg)]">
+                                    <div class="text-[10px] font-bold">STARTING PHOTO?</div>
+                                    <button @click="startCam('before')" class="btn-outline px-3 py-1 text-[10px]">OPEN CAMERA</button>
+                                </div>
+                                <div x-show="currentTask.hasBeforePhoto" class="border border-[var(--dim)] p-2 text-center rounded-[var(--radius)]">
+                                    <img :src="getPhotoForCurrentTask('before')" class="h-24 w-full object-cover opacity-50 rounded-[var(--radius)]">
+                                    <div class="text-[8px] text-[var(--dim)] mt-1">BEFORE PHOTO CAPTURED</div>
+                                </div>
+                            </div>
+
+                            <div x-show="cam.stream" class="relative panel bg-black h-64 overflow-hidden mb-2 rounded-[var(--radius)]">
+                                <video x-ref="video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                                <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-4 z-30">
+                                    <button @click="flipCam()" class="bg-gray-800 text-white p-3 rounded-full shadow-lg border border-gray-600">↻</button>
+                                    <button @click="capturePhoto()" class="bg-white border-4 border-gray-300 w-16 h-16 rounded-full shadow-lg"></button>
+                                    <button @click="stopCam()" class="bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold">CLOSE</button>
+                                </div>
+                            </div>
+
+                            <div x-show="cam.capturedPhoto" class="relative panel bg-black h-64 overflow-hidden mb-2 rounded-[var(--radius)]">
+                                <img :src="cam.capturedPhoto" class="w-full h-full object-cover">
+                                <div class="absolute bottom-2 right-2 text-xs text-white bg-black/50 px-2 rounded">PREVIEW</div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto mb-4 space-y-2">
+                            <div class="panel p-3 border-l-4 border-[var(--accent)]">
+                                <h3 class="text-[10px] text-[var(--accent)] mb-1 font-bold">OBJECTIVE</h3>
+                                <p class="text-xs" x-text="currentTask.objective"></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto space-y-3">
+                            <div x-show="mode === 'coop'" class="grid grid-cols-2 gap-3">
+                                <button @click="toggleCoop('A')" :class="coop.doneA ? 'btn' : 'btn-outline'" class="py-3 text-[10px]">
+                                    <span x-text="user.name"></span> DONE <span x-show="coop.doneA">✓</span>
+                                </button>
+                                <button @click="toggleCoop('B')" :class="coop.doneB ? 'btn' : 'btn-outline'" class="py-3 text-[10px]">
+                                    <span x-text="coop.partner"></span> DONE <span x-show="coop.doneB">✓</span>
+                                </button>
+                            </div>
+
+                            <div x-show="!timer.running && !timer.paused" class="w-full">
+                                <button @click="startTimer()" class="btn py-4 shadow-lg text-sm">START TIMER</button>
+                            </div>
+
+                            <div x-show="timer.running || timer.paused" class="grid grid-cols-2 gap-3">
+                                <button @click="toggleTimer()" class="btn-outline py-4 text-xs font-bold" x-text="timer.running ? 'PAUSE' : 'RESUME'"></button>
+                                <button @click="finishEarly()" class="btn py-4 text-xs font-bold">FINISH EARLY</button>
                             </div>
                         </div>
                     </div>
-                </div>
-            </template>
+                </template>
 
-            <template x-if="view === 'history'">
-                <div class="flex-1 flex flex-col space-y-4 slide-up">
-                    <div class="flex justify-between items-center border-b border-[var(--dim)] pb-2">
-                        <h2 class="text-xs heading-font">LOGS</h2>
-                        <button @click="view = 'start'" class="text-[10px] border border-[var(--dim)] px-2">CLOSE</button>
-                    </div>
-                    <div class="flex-1 overflow-y-auto space-y-2">
-                        <template x-for="(run, i) in history" :key="run.id">
-                            <div class="panel p-3 text-xs">
-                                <div class="flex justify-between font-bold text-[var(--accent)]">
-                                    <span x-text="new Date(run.date).toLocaleDateString()"></span>
-                                    <span x-text="'+' + run.xp + ' XP'"></span>
-                                </div>
-                                <div class="flex justify-between mt-1 text-[var(--dim)]">
-                                    <span x-text="run.mode.toUpperCase()"></span>
-                                    <span x-text="run.tasks + ' Tasks'"></span>
-                                </div>
-                                <div x-show="run.photos && run.photos.length > 0" class="mt-2 pt-2 border-t border-[var(--dim)]">
-                                    <div class="photo-grid">
-                                        <template x-for="p in run.photos">
-                                            <div class="photo-slot aspect-square bg-black border border-[var(--dim)]">
-                                                <img :src="p.data" class="w-full h-full object-cover">
-                                            </div>
-                                        </template>
+                <template x-if="view === 'summary'">
+                    <div class="flex-1 flex flex-col justify-center text-center space-y-6 slide-up">
+                        <h2 class="text-xl heading-font text-[var(--accent)]" x-text="t('mission_complete')"></h2>
+                        
+                        <div class="panel p-6 text-left space-y-4 shadow-lg">
+                            <div class="flex justify-between border-b border-[var(--dim)] pb-2">
+                                <span class="text-xs text-[var(--dim)]">TASKS</span>
+                                <span class="font-bold font-mono" x-text="plan.length"></span>
+                            </div>
+                            <div class="flex justify-between border-b border-[var(--dim)] pb-2">
+                                <span class="text-xs text-[var(--dim)]">XP EARNED</span>
+                                <span class="font-bold font-mono text-[var(--accent)]">+<span x-text="sessionXp"></span></span>
+                            </div>
+                        </div>
+
+                        <div x-show="currentRunPhotos.length > 0" class="text-left">
+                            <p class="text-[10px] text-[var(--dim)] mb-2">EVIDENCE LOG</p>
+                            <div class="photo-grid">
+                                <template x-for="p in currentRunPhotos">
+                                    <div class="photo-slot">
+                                        <img :src="p.data">
+                                        <div class="watermark" x-text="p.type.toUpperCase()"></div>
                                     </div>
-                                    <button @click="deleteRunPhotos(i)" class="text-[var(--alert)] underline mt-2 text-[8px]">DELETE PHOTOS ONLY</button>
+                                </template>
+                            </div>
+                            <div class="text-[8px] text-[var(--dim)] mt-1 text-center">Saved locally.</div>
+                        </div>
+
+                        <button @click="saveRun()" class="btn py-4 font-bold mt-4">SAVE & EXIT</button>
+                    </div>
+                </template>
+
+                <template x-if="view === 'settings'">
+                    <div class="flex-1 flex flex-col space-y-6 slide-up">
+                        <div class="flex justify-between items-center border-b border-[var(--dim)] pb-2">
+                            <h2 class="text-xs heading-font">SETTINGS</h2>
+                            <button @click="view = 'start'" class="text-[10px] border border-[var(--dim)] px-2">CLOSE</button>
+                        </div>
+                        <div class="space-y-6 overflow-y-auto max-h-[75vh] pr-2">
+                            <div class="space-y-2">
+                                <h3 class="text-[10px] text-[var(--accent)] font-bold">UI SCALE</h3>
+                                <div class="flex gap-1 justify-between">
+                                    <button @click="setUiScale(0.9)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===0.9?'bg-[var(--text)] text-[var(--bg)]':''">S</button>
+                                    <button @click="setUiScale(1.0)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===1.0?'bg-[var(--text)] text-[var(--bg)]':''">M</button>
+                                    <button @click="setUiScale(1.15)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===1.15?'bg-[var(--text)] text-[var(--bg)]':''">L</button>
+                                    <button @click="setUiScale(1.3)" class="flex-1 border py-2 text-[10px]" :class="settings.uiScale===1.3?'bg-[var(--text)] text-[var(--bg)]':''">XL</button>
                                 </div>
-                                <button @click="deleteRun(i)" class="text-[var(--alert)] underline mt-2 text-[10px] float-right">DELETE ENTRY</button>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="text-[10px] text-[var(--accent)] font-bold">CAMERA</h3>
+                                <button @click="toggleCamera()" class="btn-outline w-full py-2 text-xs" :class="settings.cameraEnabled ? 'border-[var(--accent)] text-[var(--accent)]' : ''" x-text="settings.cameraEnabled ? 'ENABLED' : 'DISABLED (PRIVACY)'"></button>
+                                <p class="text-[8px] text-[var(--dim)]" x-text="settings.cameraEnabled ? 'Photos enabled. Stored locally.' : 'Camera features disabled.'"></p>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="text-[10px] text-[var(--accent)] font-bold">NARRATIVE</h3>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button @click="setNarrative('tactical')" :class="settings.narrative==='tactical'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="p-2 text-[10px]">TACTICAL</button>
+                                    <button @click="setNarrative('neutral')" :class="settings.narrative==='neutral'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="p-2 text-[10px]">NEUTRAL</button>
+                                    <button @click="setNarrative('positive')" :class="settings.narrative==='positive'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="p-2 text-[10px]">POSITIVE</button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="text-[10px] text-[var(--accent)] font-bold">VISUAL THEME</h3>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs">Mode</span>
+                                    <div class="flex gap-1">
+                                        <button @click="setModeTheme('dark')" :class="settings.mode==='dark'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="px-2 py-1 text-[10px]">DARK</button>
+                                        <button @click="setModeTheme('light')" :class="settings.mode==='light'?'bg-[var(--text)] text-[var(--bg)]':'border border-[var(--dim)]'" class="px-2 py-1 text-[10px]">LIGHT</button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <template x-for="t in themes" :key="t.id">
+                                        <button @click="setTheme(t.id)" 
+                                            class="p-3 text-left border rounded-[var(--radius)] text-[10px] font-bold transition-all"
+                                            :class="settings.theme === t.id ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--dim)]'">
+                                            <span x-text="t.name"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="view === 'history'">
+                    <div class="flex-1 flex flex-col space-y-4 slide-up">
+                        <div class="flex justify-between items-center border-b border-[var(--dim)] pb-2">
+                            <h2 class="text-xs heading-font">LOGS</h2>
+                            <button @click="view = 'start'" class="text-[10px] border border-[var(--dim)] px-2">CLOSE</button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto space-y-2">
+                            <template x-for="(run, i) in history" :key="run.id">
+                                <div class="panel p-3 text-xs">
+                                    <div class="flex justify-between font-bold text-[var(--accent)]">
+                                        <span x-text="new Date(run.date).toLocaleDateString()"></span>
+                                        <span x-text="'+' + run.xp + ' XP'"></span>
+                                    </div>
+                                    <div class="flex justify-between mt-1 text-[var(--dim)]">
+                                        <span x-text="run.mode.toUpperCase()"></span>
+                                        <span x-text="run.tasks + ' Tasks'"></span>
+                                    </div>
+                                    <div x-show="run.photos && run.photos.length > 0" class="mt-2 pt-2 border-t border-[var(--dim)]">
+                                        <div class="photo-grid">
+                                            <template x-for="p in run.photos">
+                                                <div class="photo-slot aspect-square bg-black border border-[var(--dim)]">
+                                                    <img :src="p.data" class="w-full h-full object-cover">
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <button @click="deleteRunPhotos(i)" class="text-[var(--alert)] underline mt-2 text-[8px]">DELETE PHOTOS ONLY</button>
+                                    </div>
+                                    <button @click="deleteRun(i)" class="text-[var(--alert)] underline mt-2 text-[10px] float-right">DELETE ENTRY</button>
+                                </div>
+                            </template>
+                            <div x-show="history.length === 0" class="text-center text-[var(--dim)] text-xs mt-10">NO LOGS FOUND</div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="view === 'about'">
+                  <div class="space-y-4 text-sm slide-up">
+                    <div class="flex justify-between items-center">
+                      <h2 class="text-[var(--accent)] text-sm heading-font">ABOUT ZERO</h2>
+                      <button @click="view='start'" class="text-xs border px-2 py-1 border-[var(--dim)]">BACK</button>
+                    </div>
+                    
+                    <div class="flex border-b border-[var(--dim)]">
+                        <button @click="aboutTab='info'" :class="aboutTab==='info'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">INFO</button>
+                        <button @click="aboutTab='ranks'" :class="aboutTab==='ranks'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">RANKS</button>
+                    </div>
+
+                    <div x-show="aboutTab==='info'" class="space-y-4">
+                        <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
+                            <div class="font-bold text-xs text-[var(--text)]">Philosophy</div>
+                            <p class="text-xs leading-relaxed text-[var(--dim)]">
+                                ZERO turns the chaos of cleaning into a tactical mission. By time-boxing tasks and removing decision fatigue, we reclaim our space. Co-op mode introduces a binding contract: shared effort, shared rewards.
+                            </p>
+                        </div>
+                        <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
+                            <div class="font-bold text-xs text-[var(--text)]">Privacy</div>
+                            <p class="text-xs leading-relaxed text-[var(--dim)]">
+                                Zero tracking. Zero uploads. All data, settings, and photos live 100% on your device.
+                            </p>
+                        </div>
+                        <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
+                            <div class="font-bold text-xs text-[var(--text)]">Version History</div>
+                            <div class="text-[10px] text-[var(--dim)]">Current: v<span x-text="appVersion"></span></div>
+                            <ul class="list-disc pl-4 text-[10px] text-[var(--dim)]">
+                                <li>v2.3: Critical Timer Fixes, Privacy Hardening, After Photo Flow.</li>
+                                <li>v2.2: Themes UI restored, UI Scale centering, Camera Preview fix.</li>
+                                <li>v2.1: Advanced Camera, Mobile Scaling Fix, Photo Logs.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div x-show="aboutTab==='ranks'" class="space-y-2 overflow-y-auto max-h-[60vh]">
+                        <template x-for="r in prestigeRanks" :key="r.lv">
+                            <div class="panel p-3 flex justify-between items-center" :class="prestige.level >= r.lv ? 'border-[var(--accent)]' : 'opacity-50'">
+                                <div>
+                                    <div class="text-xs font-bold" x-text="r.title"></div>
+                                    <div class="text-[10px] text-[var(--dim)]">Unlocks at Level <span x-text="r.lv"></span></div>
+                                </div>
+                                <div x-show="prestige.level >= r.lv" class="text-[var(--accent)]">✓</div>
                             </div>
                         </template>
-                        <div x-show="history.length === 0" class="text-center text-[var(--dim)] text-xs mt-10">NO LOGS FOUND</div>
                     </div>
-                </div>
-            </template>
+                  </div>
+                </template>
 
-            <template x-if="view === 'about'">
-              <div class="space-y-4 text-sm slide-up">
-                <div class="flex justify-between items-center">
-                  <h2 class="text-[var(--accent)] text-sm heading-font">ABOUT ZERO</h2>
-                  <button @click="view='start'" class="text-xs border px-2 py-1 border-[var(--dim)]">BACK</button>
-                </div>
-                
-                <div class="flex border-b border-[var(--dim)]">
-                    <button @click="aboutTab='info'" :class="aboutTab==='info'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">INFO</button>
-                    <button @click="aboutTab='ranks'" :class="aboutTab==='ranks'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">RANKS</button>
-                </div>
-
-                <div x-show="aboutTab==='info'" class="space-y-4">
-                    <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
-                        <div class="font-bold text-xs text-[var(--text)]">Privacy & Local Data</div>
-                        <p class="text-xs leading-relaxed text-[var(--dim)]">
-                            All run history, settings, and photos are stored locally on your device. Zero cloud storage, zero tracking. 
-                        </p>
-                    </div>
-                    <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
-                        <div class="font-bold text-xs text-[var(--text)]">Version History</div>
-                        <div class="text-[10px] text-[var(--dim)]">Current: v<span x-text="appVersion"></span></div>
-                        <ul class="list-disc pl-4 text-[10px] text-[var(--dim)]">
-                            <li>v2.1: Advanced Camera, Mobile Scaling Fix, Photo Logs</li>
-                            <li>v2.0: Prestige System, Themes, Co-op</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div x-show="aboutTab==='ranks'" class="space-y-2 overflow-y-auto max-h-[60vh]">
-                    <template x-for="r in prestigeRanks" :key="r.lv">
-                        <div class="panel p-3 flex justify-between items-center" :class="prestige.level >= r.lv ? 'border-[var(--accent)]' : 'opacity-50'">
-                            <div>
-                                <div class="text-xs font-bold" x-text="r.title"></div>
-                                <div class="text-[10px] text-[var(--dim)]">Unlocks at Level <span x-text="r.lv"></span></div>
-                            </div>
-                            <div x-show="prestige.level >= r.lv" class="text-[var(--accent)]">✓</div>
+                <div x-show="modal.open" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div class="panel p-6 max-w-sm w-full text-center shadow-2xl slide-up border-2 border-[var(--text)]">
+                        <h3 class="text-sm font-bold mb-2 heading-font" x-text="modal.title"></h3>
+                        <p class="text-xs mb-6 text-[var(--dim)]" x-text="modal.msg"></p>
+                        <div class="flex gap-2 justify-center">
+                            <button x-show="modal.showCancel" @click="modal.onCancel ? modal.onCancel() : null; modal.open = false" class="btn-outline flex-1 py-3 text-xs">CANCEL</button>
+                            <button @click="modal.onConfirm(); modal.open = false" class="btn flex-1 py-3 text-xs" x-text="modal.confirmText"></button>
                         </div>
-                    </template>
-                </div>
-              </div>
-            </template>
-
-            <div x-show="modal.open" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div class="panel p-6 max-w-sm w-full text-center shadow-2xl slide-up border-2 border-[var(--text)]">
-                    <h3 class="text-sm font-bold mb-2 heading-font" x-text="modal.title"></h3>
-                    <p class="text-xs mb-6 text-[var(--dim)]" x-text="modal.msg"></p>
-                    <div class="flex gap-2 justify-center">
-                        <button x-show="modal.showCancel" @click="modal.open = false" class="btn-outline flex-1 py-3 text-xs">CANCEL</button>
-                        <button @click="modal.onConfirm(); modal.open = false" class="btn flex-1 py-3 text-xs" x-text="modal.confirmText"></button>
                     </div>
                 </div>
-            </div>
 
+            </div>
         </div>
     </div>
 
     <script>
-        const APP_VERSION = "2.1.0";
+        const APP_VERSION = "2.3.0";
         const NARRATIVE = {
             tactical: { welcome: 'SYSTEM READY', init: 'INITIALIZE RUN', privacy_active: 'VISUAL SENSORS OFFLINE.', plan_hint: 'ALLOCATING RESOURCES...', mission_complete: 'OPERATION COMPLETE' },
             neutral: { welcome: 'Welcome Back', init: 'Start Session', privacy_active: 'Camera is disabled.', plan_hint: 'Creating schedule...', mission_complete: 'Session Finished' },
@@ -473,8 +498,8 @@
                 
                 // Camera & Data
                 cam: { stream: null, facingMode: 'environment', photoType: null, capturedPhoto: null }, 
-                currentRunPhotos: [], // Photos for CURRENT session
-                modal: { open: false, title: '', msg: '', confirmText: 'OK', showCancel: false, onConfirm: ()=>{} },
+                currentRunPhotos: [], 
+                modal: { open: false, title: '', msg: '', confirmText: 'OK', showCancel: false, onConfirm: ()=>{}, onCancel: null },
                 aboutTab: 'info',
 
                 init() {
@@ -491,8 +516,8 @@
                 toggleZone(id) { this.selectedZones.includes(id) ? this.selectedZones = this.selectedZones.filter(z=>z!==id) : this.selectedZones.push(id); playSound('tick'); },
                 
                 // Modals
-                showModal(title, msg, confirmText='OK', showCancel=false, onConfirm=()=>{}) {
-                    this.modal = { open: true, title, msg, confirmText, showCancel, onConfirm };
+                showModal(title, msg, confirmText='OK', showCancel=false, onConfirm=()=>{}, onCancel=null) {
+                    this.modal = { open: true, title, msg, confirmText, showCancel, onConfirm, onCancel };
                 },
                 goHome() { this.showModal('ABANDON RUN?', 'Current progress will be lost.', 'EXIT RUN', true, () => { this.stopCam(); clearInterval(this.timer.interval); this.view = 'start'; }); },
                 
@@ -527,17 +552,30 @@
                     this.missionIndex = 0; this.sessionXp = 0; this.currentRunPhotos = [];
                     this.loadMission(0); this.view = 'mission'; playSound('start');
                 },
+                
                 loadMission(idx) {
                     this.currentTask = this.plan[idx];
                     let sec = this.dev.fastMode ? 10 : this.currentTask.duration;
+                    // --- TIMER FIX ---
+                    // Explicitly reset timer state to prevent auto-starts or overlaps
+                    if (this.timer.interval) clearInterval(this.timer.interval);
                     this.timer = { val: sec, total: sec, progress: 100, running: false, paused: false, interval: null };
+                    // -----------------
                     this.coop.doneA = false; this.coop.doneB = false;
                     this.cam.photoType = null; this.cam.capturedPhoto = null;
+                    
+                    // Stop camera if it was left running (privacy check)
+                    this.stopCam();
                 },
 
                 // Timer
                 startTimer() {
-                    this.timer.running = true; playSound('tick');
+                    // --- TIMER FIX ---
+                    // Guard against multiple intervals
+                    if (this.timer.interval) clearInterval(this.timer.interval);
+                    
+                    this.timer.running = true; 
+                    playSound('tick');
                     this.timer.interval = setInterval(() => {
                         this.timer.val--;
                         this.timer.progress = (this.timer.val / this.timer.total) * 100;
@@ -545,29 +583,58 @@
                         if(this.timer.val <= 0) this.finishMission();
                     }, 1000);
                 },
+                
                 toggleTimer() {
-                    if(this.timer.running) { clearInterval(this.timer.interval); this.timer.running = false; this.timer.paused = true; } 
-                    else { this.startTimer(); this.timer.paused = false; }
+                    if(this.timer.running) { 
+                        clearInterval(this.timer.interval); 
+                        this.timer.interval = null; // Explicit nullify
+                        this.timer.running = false; 
+                        this.timer.paused = true; 
+                    } 
+                    else { 
+                        this.startTimer(); 
+                        this.timer.paused = false; 
+                    }
                 },
+                
                 toggleCoop(p) { if(p==='A') this.coop.doneA = !this.coop.doneA; if(p==='B') this.coop.doneB = !this.coop.doneB; playSound('tick'); if(this.coop.doneA && this.coop.doneB) this.finishMission(); },
                 finishEarly() { this.addXp(20); this.finishMission(); },
+                
                 finishMission() {
-                    clearInterval(this.timer.interval); this.stopCam(); this.addXp(100); playSound('complete');
+                    clearInterval(this.timer.interval); 
+                    this.timer.interval = null; // Guard
+                    this.stopCam(); 
+                    this.addXp(100); 
+                    playSound('complete');
+                    
+                    // --- AFTER PHOTO FLOW ---
                     if(this.settings.cameraEnabled && !this.currentTask.hasAfterPhoto) {
-                        setTimeout(() => this.showModal('AFTER PHOTO?', 'Capture the result?', 'CAMERA', true, () => this.startCam('after')), 500);
-                        // If cancel, we manually move next:
-                        // Logic simplified for this build: Modal cancel won't auto-advance, user hits Close Cam then Next.
-                        // Actually, let's auto advance on next tick if no photo desired.
-                        setTimeout(() => { if(!this.cam.stream) this.nextMission(); }, 3000); 
-                    } else { setTimeout(() => this.nextMission(), 1000); }
+                        setTimeout(() => this.showModal(
+                            'CAPTURE EVIDENCE?', 
+                            'Take AFTER photo?', 
+                            'TAKE PHOTO', 
+                            true, 
+                            () => this.startCam('after'), // Confirm: Start Cam
+                            () => this.nextMission()      // Cancel: Skip
+                        ), 500);
+                    } else { 
+                        setTimeout(() => this.nextMission(), 1000); 
+                    }
                 },
+                
                 nextMission() {
-                    if(this.missionIndex < this.plan.length - 1) { this.missionIndex++; this.loadMission(this.missionIndex); } else { this.view = 'summary'; }
+                    if(this.missionIndex < this.plan.length - 1) { 
+                        this.missionIndex++; 
+                        this.loadMission(this.missionIndex); 
+                    } else { 
+                        this.view = 'summary'; 
+                    }
                 },
 
                 // Camera Engine
                 startCam(type) {
                     this.cam.photoType = type;
+                    this.cam.capturedPhoto = null; 
                     navigator.mediaDevices.getUserMedia({ video: { facingMode: this.cam.facingMode } })
                     .then(stream => {
                         this.cam.stream = stream;
@@ -575,23 +642,47 @@
                     })
                     .catch(e => this.showModal('CAMERA ERROR', 'Permission denied or device unavailable.', 'OK'));
                 },
-                stopCam() { if(this.cam.stream) this.cam.stream.getTracks().forEach(t=>t.stop()); this.cam.stream = null; },
+                
+                // --- PRIVACY FIX ---
+                stopCam() { 
+                    if(this.cam.stream) {
+                        this.cam.stream.getTracks().forEach(t => t.stop()); // Physical hardware stop
+                        this.cam.stream = null; 
+                    }
+                },
+                
                 flipCam() {
                     this.stopCam();
                     this.cam.facingMode = this.cam.facingMode === 'user' ? 'environment' : 'user';
                     this.startCam(this.cam.photoType);
                 },
+                
+                getPhotoForCurrentTask(type) {
+                    if(type === 'before' && this.currentTask.hasBeforePhoto) {
+                        const p = this.currentRunPhotos.find(p => p.type === 'before'); 
+                        return p ? p.data : null; 
+                    }
+                    return null;
+                },
+                
                 capturePhoto() {
                     if(!this.cam.stream) return;
                     const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 480;
                     cvs.getContext('2d').drawImage(this.$refs.video, 0, 0, 640, 480);
                     const data = cvs.toDataURL('image/jpeg', 0.8);
                     
-                    // Add to session photos
                     this.currentRunPhotos.push({ type: this.cam.photoType, data });
+                    this.cam.capturedPhoto = data; 
                     
-                    if(this.cam.photoType === 'before') { this.currentTask.hasBeforePhoto = true; this.stopCam(); }
-                    if(this.cam.photoType === 'after') { this.currentTask.hasAfterPhoto = true; this.stopCam(); this.nextMission(); }
+                    if(this.cam.photoType === 'before') { 
+                        this.currentTask.hasBeforePhoto = true; 
+                        this.stopCam(); 
+                    }
+                    if(this.cam.photoType === 'after') { 
+                        this.currentTask.hasAfterPhoto = true; 
+                        this.stopCam(); // Privacy!
+                        this.nextMission(); // Auto-advance
+                    }
                 },
 
                 // XP & History
