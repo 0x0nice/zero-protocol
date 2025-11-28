@@ -18,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
     <style>
-        /* === THEME MATRIX v4.3 === */
+        /* === THEME MATRIX v4.4 === */
         :root { --font-head: 'Press Start 2P', cursive; --font-body: 'Space Mono', monospace; --radius: 0px; --border: 2px; }
 
         /* THEMES */
@@ -76,6 +76,10 @@
         #ui-wrapper { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; }
         #app-container { width: 100%; max-width: 28rem; height: 100%; overflow-y: auto; overflow-x: hidden; transform-origin: top center; transition: transform 0.2s ease; }
         .icon { width: 1.25rem; height: 1.25rem; fill: currentColor; }
+        
+        /* Feedback Button */
+        .feedback-btn { position: fixed; bottom: 1rem; left: 1rem; z-index: 90; opacity: 0.5; transition: opacity 0.2s; }
+        .feedback-btn:hover { opacity: 1; }
     </style>
 </head>
 
@@ -94,6 +98,10 @@
             </div>
         </template>
     </div>
+
+    <button @click="openFeedback()" class="feedback-btn btn-outline px-2 py-1 text-[8px] flex items-center gap-1 bg-[var(--bg)] shadow-md" :style="`transform: scale(${settings.uiScale}); transform-origin: bottom left;`">
+        <span>💬</span> FEEDBACK
+    </button>
 
     <div id="ui-wrapper">
         <div id="app-container" :style="`transform: scale(${settings.uiScale});`">
@@ -137,6 +145,9 @@
                             <div x-show="view === 'mission'" class="col-span-2">
                                 <button @click="finishMission()" class="btn btn-danger py-1 text-[10px]">FORCE FINISH MISSION</button>
                             </div>
+                        </div>
+                        <div class="mt-2 text-[10px] font-mono text-[var(--dim)]">
+                            ID: <span x-text="anonId"></span>
                         </div>
                     </div>
                 </div>
@@ -445,14 +456,17 @@
                             <p class="text-xs leading-relaxed text-[var(--dim)]">
                                 Zero tracking. Zero uploads. All data, settings, and photos live 100% on your device.
                             </p>
+                            <div class="text-[10px] text-[var(--dim)] mt-2">
+                                <strong>ANON ID:</strong> <span x-text="anonId"></span>
+                            </div>
                         </div>
                         <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
                             <div class="font-bold text-xs text-[var(--text)]">Version History</div>
                             <div class="text-[10px] text-[var(--dim)]">Current: v<span x-text="appVersion"></span></div>
                             <ul class="list-disc pl-4 text-[10px] text-[var(--dim)]">
+                                <li>v2.5: Feedback Form, Analytics Engine, Privacy Updates.</li>
                                 <li>v2.4: Added User Guide & Feature Manual.</li>
-                                <li>v2.3: Critical Timer Fixes, Privacy Hardening, After Photo Flow.</li>
-                                <li>v2.2: Themes UI restored, UI Scale centering, Camera Preview fix.</li>
+                                <li>v2.3: Critical Timer Fixes, Privacy Hardening.</li>
                             </ul>
                         </div>
                     </div>
@@ -471,6 +485,39 @@
                   </div>
                 </template>
 
+                <div x-show="feedback.open" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div class="panel p-6 max-w-sm w-full text-left shadow-2xl slide-up border-2 border-[var(--text)] relative">
+                        <button @click="feedback.open = false" class="absolute top-2 right-2 text-xs">X</button>
+                        <h3 class="text-sm font-bold mb-4 heading-font text-[var(--accent)]">TRANSMIT FEEDBACK</h3>
+                        
+                        <form name="zero-feedback" method="POST" data-netlify="true" netlify>
+                            <input type="hidden" name="form-name" value="zero-feedback">
+                            <input type="hidden" name="anon_id" :value="anonId">
+                            <input type="hidden" name="app_version" :value="appVersion">
+                            <input type="hidden" name="context" :value="feedback.context">
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-[10px] text-[var(--dim)] block mb-1">WHAT WENT WELL?</label>
+                                    <textarea name="positive" class="w-full bg-black/10 border border-[var(--dim)] p-2 text-xs" rows="2"></textarea>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-[var(--dim)] block mb-1">WHAT BROKE / NEEDS WORK?</label>
+                                    <textarea name="negative" class="w-full bg-black/10 border border-[var(--dim)] p-2 text-xs" rows="2"></textarea>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-[var(--dim)] block mb-1">EMAIL (OPTIONAL)</label>
+                                    <input type="email" name="email" class="w-full bg-black/10 border border-[var(--dim)] p-2 text-xs">
+                                </div>
+                                <p class="text-[8px] text-[var(--dim)] italic mt-2">
+                                    No photos are sent. Context (theme, mode, rank) is included for debugging.
+                                </p>
+                                <button type="submit" class="btn w-full text-xs py-3">TRANSMIT</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div x-show="modal.open" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                     <div class="panel p-6 max-w-sm w-full text-center shadow-2xl slide-up border-2 border-[var(--text)]">
                         <h3 class="text-sm font-bold mb-2 heading-font" x-text="modal.title"></h3>
@@ -487,7 +534,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "2.4.0";
+        const APP_VERSION = "2.5.0";
         const NARRATIVE = {
             tactical: { welcome: 'SYSTEM READY', init: 'INITIALIZE RUN', privacy_active: 'VISUAL SENSORS OFFLINE.', plan_hint: 'ALLOCATING RESOURCES...', mission_complete: 'OPERATION COMPLETE' },
             neutral: { welcome: 'Welcome Back', init: 'Start Session', privacy_active: 'Camera is disabled.', plan_hint: 'Creating schedule...', mission_complete: 'Session Finished' },
@@ -506,7 +553,7 @@
         function zero() {
             return {
                 appVersion: APP_VERSION,
-                view: 'start', mode: 'solo', user: { name: 'OPERATOR' },
+                view: 'start', mode: 'solo', user: { name: 'OPERATOR' }, anonId: '',
                 coop: { partner: 'PARTNER', doneA: false, doneB: false },
                 settings: { theme: 'nostalgia', mode: 'dark', narrative: 'tactical', cameraEnabled: false, muted: false, uiScale: 1.0 },
                 selectedDuration: null, selectedZones: [], 
@@ -522,7 +569,8 @@
                 cam: { stream: null, facingMode: 'environment', photoType: null, capturedPhoto: null }, 
                 currentRunPhotos: [], 
                 modal: { open: false, title: '', msg: '', confirmText: 'OK', showCancel: false, onConfirm: ()=>{}, onCancel: null },
-                aboutTab: 'guide', // Default to GUIDE for new users
+                feedback: { open: false, context: '' },
+                aboutTab: 'guide',
 
                 init() {
                     const load = (k) => JSON.parse(localStorage.getItem(k));
@@ -531,9 +579,37 @@
                     this.prestige = { ...this.prestige, ...load('z_prestige') };
                     this.history = load('z_history') || [];
                     if(load('z_mute')) this.settings.muted = true;
+                    
+                    // Init Anon ID
+                    let aid = localStorage.getItem('z_anon_id');
+                    if (!aid) { aid = crypto.randomUUID(); localStorage.setItem('z_anon_id', aid); }
+                    this.anonId = aid;
                 },
 
-                setMode(m) { this.mode = m; playSound('tick'); },
+                // === ANALYTICS ENGINE ===
+                logEvent(name, payload = {}) {
+                    const eventData = {
+                        event: name,
+                        timestamp: new Date().toISOString(),
+                        anonId: this.anonId,
+                        ...payload
+                    };
+                    console.log('[ZERO ANALYTICS]', eventData);
+                    // Placeholder for future Plausible/Fathom integration
+                    // if(window.plausible) window.plausible(name, { props: payload });
+                },
+
+                openFeedback() {
+                    this.feedback.context = JSON.stringify({
+                        settings: this.settings,
+                        prestige: this.prestige,
+                        lastRun: this.history[0] || null,
+                        view: this.view
+                    });
+                    this.feedback.open = true;
+                },
+
+                setMode(m) { this.mode = m; playSound('tick'); this.logEvent('settings_changed', { mode: m }); },
                 setDuration(t) { this.selectedDuration = t; playSound('tick'); },
                 toggleZone(id) { this.selectedZones.includes(id) ? this.selectedZones = this.selectedZones.filter(z=>z!==id) : this.selectedZones.push(id); playSound('tick'); },
                 
@@ -544,17 +620,18 @@
                 goHome() { this.showModal('ABANDON RUN?', 'Current progress will be lost.', 'EXIT RUN', true, () => { this.stopCam(); clearInterval(this.timer.interval); this.view = 'start'; }); },
                 
                 // Settings
-                toggleMute() { this.settings.muted = !this.settings.muted; localStorage.setItem('zero_mute', this.settings.muted); },
+                toggleMute() { this.settings.muted = !this.settings.muted; localStorage.setItem('zero_mute', this.settings.muted); this.logEvent('settings_changed', { muted: this.settings.muted }); },
                 t(key) { return NARRATIVE[this.settings.narrative][key] || key; },
-                setTheme(id) { this.settings.theme = id; this.persistSettings(); },
+                setTheme(id) { this.settings.theme = id; this.persistSettings(); this.logEvent('settings_changed', { theme: id }); },
                 setModeTheme(m) { this.settings.mode = m; this.persistSettings(); },
                 setNarrative(n) { this.settings.narrative = n; this.persistSettings(); },
-                setUiScale(s) { this.settings.uiScale = s; this.persistSettings(); },
-                toggleCamera() { this.settings.cameraEnabled = !this.settings.cameraEnabled; this.persistSettings(); },
+                setUiScale(s) { this.settings.uiScale = s; this.persistSettings(); this.logEvent('settings_changed', { uiScale: s }); },
+                toggleCamera() { this.settings.cameraEnabled = !this.settings.cameraEnabled; this.persistSettings(); this.logEvent('settings_changed', { camera: this.settings.cameraEnabled }); },
                 persistSettings() { localStorage.setItem('z_settings', JSON.stringify(this.settings)); },
 
                 // Plan
                 generatePlan() {
+                    this.logEvent('run_started', { duration: this.selectedDuration, zones: this.selectedZones, mode: this.mode });
                     let totalSec = this.selectedDuration * 60;
                     let tasks = [];
                     let trashTime = Math.min(totalSec * 0.2, 300);
@@ -578,26 +655,17 @@
                 loadMission(idx) {
                     this.currentTask = this.plan[idx];
                     let sec = this.dev.fastMode ? 10 : this.currentTask.duration;
-                    // --- TIMER FIX ---
-                    // Explicitly reset timer state to prevent auto-starts or overlaps
                     if (this.timer.interval) clearInterval(this.timer.interval);
                     this.timer = { val: sec, total: sec, progress: 100, running: false, paused: false, interval: null };
-                    // -----------------
                     this.coop.doneA = false; this.coop.doneB = false;
                     this.cam.photoType = null; this.cam.capturedPhoto = null;
-                    
-                    // Stop camera if it was left running (privacy check)
                     this.stopCam();
                 },
 
                 // Timer
                 startTimer() {
-                    // --- TIMER FIX ---
-                    // Guard against multiple intervals
                     if (this.timer.interval) clearInterval(this.timer.interval);
-                    
-                    this.timer.running = true; 
-                    playSound('tick');
+                    this.timer.running = true; playSound('tick');
                     this.timer.interval = setInterval(() => {
                         this.timer.val--;
                         this.timer.progress = (this.timer.val / this.timer.total) * 100;
@@ -605,40 +673,20 @@
                         if(this.timer.val <= 0) this.finishMission();
                     }, 1000);
                 },
-                
                 toggleTimer() {
-                    if(this.timer.running) { 
-                        clearInterval(this.timer.interval); 
-                        this.timer.interval = null; // Explicit nullify
-                        this.timer.running = false; 
-                        this.timer.paused = true; 
-                    } 
-                    else { 
-                        this.startTimer(); 
-                        this.timer.paused = false; 
-                    }
+                    if(this.timer.running) { clearInterval(this.timer.interval); this.timer.interval = null; this.timer.running = false; this.timer.paused = true; } 
+                    else { this.startTimer(); this.timer.paused = false; }
                 },
-                
                 toggleCoop(p) { if(p==='A') this.coop.doneA = !this.coop.doneA; if(p==='B') this.coop.doneB = !this.coop.doneB; playSound('tick'); if(this.coop.doneA && this.coop.doneB) this.finishMission(); },
                 finishEarly() { this.addXp(20); this.finishMission(); },
                 
                 finishMission() {
-                    clearInterval(this.timer.interval); 
-                    this.timer.interval = null; // Guard
-                    this.stopCam(); 
-                    this.addXp(100); 
-                    playSound('complete');
+                    clearInterval(this.timer.interval); this.timer.interval = null;
+                    this.stopCam(); this.addXp(100); playSound('complete');
+                    this.logEvent('mission_completed', { task: this.currentTask.title });
                     
-                    // --- AFTER PHOTO FLOW ---
                     if(this.settings.cameraEnabled && !this.currentTask.hasAfterPhoto) {
-                        setTimeout(() => this.showModal(
-                            'CAPTURE EVIDENCE?', 
-                            'Take AFTER photo?', 
-                            'TAKE PHOTO', 
-                            true, 
-                            () => this.startCam('after'), // Confirm: Start Cam
-                            () => this.nextMission()      // Cancel: Skip
-                        ), 500);
+                        setTimeout(() => this.showModal('CAPTURE EVIDENCE?', 'Take AFTER photo?', 'TAKE PHOTO', true, () => this.startCam('after'), () => this.nextMission()), 500);
                     } else { 
                         setTimeout(() => this.nextMission(), 1000); 
                     }
@@ -646,8 +694,7 @@
                 
                 nextMission() {
                     if(this.missionIndex < this.plan.length - 1) { 
-                        this.missionIndex++; 
-                        this.loadMission(this.missionIndex); 
+                        this.missionIndex++; this.loadMission(this.missionIndex); 
                     } else { 
                         this.view = 'summary'; 
                     }
@@ -655,56 +702,31 @@
 
                 // Camera Engine
                 startCam(type) {
-                    this.cam.photoType = type;
-                    this.cam.capturedPhoto = null; 
+                    this.cam.photoType = type; this.cam.capturedPhoto = null; 
                     navigator.mediaDevices.getUserMedia({ video: { facingMode: this.cam.facingMode } })
                     .then(stream => {
                         this.cam.stream = stream;
                         this.$nextTick(() => this.$refs.video.srcObject = stream);
+                        this.logEvent('camera_started', { type });
                     })
                     .catch(e => this.showModal('CAMERA ERROR', 'Permission denied or device unavailable.', 'OK'));
                 },
-                
-                // --- PRIVACY FIX ---
-                stopCam() { 
-                    if(this.cam.stream) {
-                        this.cam.stream.getTracks().forEach(t => t.stop()); // Physical hardware stop
-                        this.cam.stream = null; 
-                    }
-                },
-                
-                flipCam() {
-                    this.stopCam();
-                    this.cam.facingMode = this.cam.facingMode === 'user' ? 'environment' : 'user';
-                    this.startCam(this.cam.photoType);
-                },
-                
+                stopCam() { if(this.cam.stream) { this.cam.stream.getTracks().forEach(t => t.stop()); this.cam.stream = null; } },
+                flipCam() { this.stopCam(); this.cam.facingMode = this.cam.facingMode === 'user' ? 'environment' : 'user'; this.startCam(this.cam.photoType); },
                 getPhotoForCurrentTask(type) {
-                    if(type === 'before' && this.currentTask.hasBeforePhoto) {
-                        const p = this.currentRunPhotos.find(p => p.type === 'before'); 
-                        return p ? p.data : null; 
-                    }
+                    if(type === 'before' && this.currentTask.hasBeforePhoto) { const p = this.currentRunPhotos.find(p => p.type === 'before'); return p ? p.data : null; }
                     return null;
                 },
-                
                 capturePhoto() {
                     if(!this.cam.stream) return;
                     const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 480;
                     cvs.getContext('2d').drawImage(this.$refs.video, 0, 0, 640, 480);
                     const data = cvs.toDataURL('image/jpeg', 0.8);
-                    
                     this.currentRunPhotos.push({ type: this.cam.photoType, data });
                     this.cam.capturedPhoto = data; 
-                    
-                    if(this.cam.photoType === 'before') { 
-                        this.currentTask.hasBeforePhoto = true; 
-                        this.stopCam(); 
-                    }
-                    if(this.cam.photoType === 'after') { 
-                        this.currentTask.hasAfterPhoto = true; 
-                        this.stopCam(); // Privacy!
-                        this.nextMission(); // Auto-advance
-                    }
+                    this.logEvent('photo_captured', { type: this.cam.photoType });
+                    if(this.cam.photoType === 'before') { this.currentTask.hasBeforePhoto = true; this.stopCam(); }
+                    if(this.cam.photoType === 'after') { this.currentTask.hasAfterPhoto = true; this.stopCam(); this.nextMission(); }
                 },
 
                 // XP & History
@@ -722,15 +744,11 @@
                     const run = { id: Date.now(), date: new Date(), xp: this.sessionXp, mode: this.mode, tasks: this.plan.length, photos: this.currentRunPhotos };
                     this.history.unshift(run);
                     localStorage.setItem('z_history', JSON.stringify(this.history));
+                    this.logEvent('run_completed', { xp: this.sessionXp, tasks: this.plan.length });
                     this.view = 'start';
                 },
                 deleteRun(i) { if(confirm("Delete Log?")) { this.history.splice(i, 1); localStorage.setItem('z_history', JSON.stringify(this.history)); } },
-                deleteRunPhotos(i) {
-                    if(confirm("Delete photos only?")) {
-                        this.history[i].photos = [];
-                        localStorage.setItem('z_history', JSON.stringify(this.history));
-                    }
-                },
+                deleteRunPhotos(i) { if(confirm("Delete photos only?")) { this.history[i].photos = []; localStorage.setItem('z_history', JSON.stringify(this.history)); } },
                 clearHistory() { if(confirm("Wipe all history?")) { this.history = []; localStorage.removeItem('z_history'); } },
                 
                 formatTime(s) { const m = Math.floor(s / 60); const sc = s % 60; return `${m.toString().padStart(2,'0')}:${sc.toString().padStart(2,'0')}`; }
