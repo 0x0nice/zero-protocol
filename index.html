@@ -77,12 +77,22 @@
         #app-container { width: 100%; max-width: 28rem; height: 100%; overflow-y: auto; overflow-x: hidden; transform-origin: top center; transition: transform 0.2s ease; }
         .icon { width: 1.25rem; height: 1.25rem; fill: currentColor; }
         
+        /* Feedback Button */
         .feedback-btn { position: fixed; bottom: 1rem; left: 1rem; z-index: 90; opacity: 0.5; transition: opacity 0.2s; }
         .feedback-btn:hover { opacity: 1; }
     </style>
 </head>
 
 <body :class="['theme-' + settings.theme, 'mode-' + settings.mode]" x-data="zero()" x-init="init()">
+
+    <form name="zero-feedback" netlify netlify-honeypot="bot-field" hidden>
+        <input type="text" name="context" />
+        <input type="text" name="anon_id" />
+        <input type="text" name="app_version" />
+        <textarea name="positive"></textarea>
+        <textarea name="negative"></textarea>
+        <input type="email" name="email" />
+    </form>
 
     <div class="scanlines"></div>
 
@@ -463,6 +473,7 @@
                             <div class="font-bold text-xs text-[var(--text)]">Version History</div>
                             <div class="text-[10px] text-[var(--dim)]">Current: v<span x-text="appVersion"></span></div>
                             <ul class="list-disc pl-4 text-[10px] text-[var(--dim)]">
+                                <li>v2.5.3: Netlify 404 Fix (Ghost Form + AJAX).</li>
                                 <li>v2.5.2: AJAX Form Fix (No 404).</li>
                                 <li>v2.5: Feedback Form, Analytics Engine, Privacy Updates.</li>
                                 <li>v2.4: Added User Guide & Feature Manual.</li>
@@ -534,7 +545,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "2.5.2";
+        const APP_VERSION = "2.5.3";
         const NARRATIVE = {
             tactical: { welcome: 'SYSTEM READY', init: 'INITIALIZE RUN', privacy_active: 'VISUAL SENSORS OFFLINE.', plan_hint: 'ALLOCATING RESOURCES...', mission_complete: 'OPERATION COMPLETE' },
             neutral: { welcome: 'Welcome Back', init: 'Start Session', privacy_active: 'Camera is disabled.', plan_hint: 'Creating schedule...', mission_complete: 'Session Finished' },
@@ -610,26 +621,30 @@
                 submitFeedback(e) {
                     this.feedback.submitting = true;
                     const formData = new FormData(e.target);
+                    const data = new URLSearchParams(formData);
                     
-                    // Netlify AJAX Submission
                     fetch("/", {
                         method: "POST",
                         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: new URLSearchParams(formData).toString()
+                        body: data.toString()
                     })
-                    .then(() => {
-                        this.feedback.open = false;
-                        this.showModal('RECEIVED', 'Feedback transmission complete. +10 XP', 'OK');
-                        this.addXp(10);
-                        this.feedback.submitting = false;
-                        e.target.reset(); // Clear form
+                    .then((response) => {
+                        if (response.ok) {
+                            this.feedback.open = false;
+                            this.showModal('RECEIVED', 'Feedback transmission complete. +10 XP', 'OK');
+                            this.addXp(10);
+                            e.target.reset();
+                        } else {
+                            throw new Error('Network response was not ok');
+                        }
                     })
                     .catch((error) => {
-                        // If running locally, assume success for testing
-                        console.warn("Netlify Form submission failed (expected on localhost):", error);
+                        console.warn("Feedback submission failed (expected if local):", error);
                         this.feedback.open = false;
                         this.showModal('RECEIVED (LOCAL)', 'Feedback simulated. +10 XP', 'OK');
                         this.addXp(10);
+                    })
+                    .finally(() => {
                         this.feedback.submitting = false;
                     });
                 },
