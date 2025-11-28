@@ -407,8 +407,30 @@
                     </div>
                     
                     <div class="flex border-b border-[var(--dim)]">
+                        <button @click="aboutTab='guide'" :class="aboutTab==='guide'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">GUIDE</button>
                         <button @click="aboutTab='info'" :class="aboutTab==='info'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">INFO</button>
                         <button @click="aboutTab='ranks'" :class="aboutTab==='ranks'?'text-[var(--accent)] border-b-2 border-[var(--accent)]':''" class="flex-1 pb-2 text-xs">RANKS</button>
+                    </div>
+
+                    <div x-show="aboutTab==='guide'" class="space-y-4">
+                        <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
+                            <div class="font-bold text-xs text-[var(--accent)]">QUICK START</div>
+                            <ol class="list-decimal pl-4 text-[10px] text-[var(--dim)] space-y-2">
+                                <li><strong>Initialize:</strong> Choose your total time (e.g. 30m) and sectors (rooms).</li>
+                                <li><strong>Execute:</strong> The system generates a mission plan. Follow the timer. No thinking required.</li>
+                                <li><strong>Visuals:</strong> Optional Before/After photos to log your victory.</li>
+                                <li><strong>Debrief:</strong> Earn XP, rank up, and review your logs.</li>
+                            </ol>
+                        </div>
+                        <div class="border border-[var(--dim)] p-3 bg-[var(--panel)] space-y-2">
+                            <div class="font-bold text-xs text-[var(--text)]">FEATURE DATABASE</div>
+                            <ul class="list-disc pl-4 text-[10px] text-[var(--dim)] space-y-2">
+                                <li><strong>Modes:</strong> Solo for focus, Co-Op for shared accountability (contracts + compliments).</li>
+                                <li><strong>Progression:</strong> Earn XP to rise from 'Dust Cadet' to 'Zero Elite'.</li>
+                                <li><strong>Privacy:</strong> Zero cloud. Zero tracking. Photos and data live on your device only.</li>
+                                <li><strong>Themes:</strong> 6 distinct visual styles including Dark/Light modes.</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div x-show="aboutTab==='info'" class="space-y-4">
@@ -428,9 +450,9 @@
                             <div class="font-bold text-xs text-[var(--text)]">Version History</div>
                             <div class="text-[10px] text-[var(--dim)]">Current: v<span x-text="appVersion"></span></div>
                             <ul class="list-disc pl-4 text-[10px] text-[var(--dim)]">
+                                <li>v2.4: Added User Guide & Feature Manual.</li>
                                 <li>v2.3: Critical Timer Fixes, Privacy Hardening, After Photo Flow.</li>
                                 <li>v2.2: Themes UI restored, UI Scale centering, Camera Preview fix.</li>
-                                <li>v2.1: Advanced Camera, Mobile Scaling Fix, Photo Logs.</li>
                             </ul>
                         </div>
                     </div>
@@ -465,7 +487,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "2.3.0";
+        const APP_VERSION = "2.4.0";
         const NARRATIVE = {
             tactical: { welcome: 'SYSTEM READY', init: 'INITIALIZE RUN', privacy_active: 'VISUAL SENSORS OFFLINE.', plan_hint: 'ALLOCATING RESOURCES...', mission_complete: 'OPERATION COMPLETE' },
             neutral: { welcome: 'Welcome Back', init: 'Start Session', privacy_active: 'Camera is disabled.', plan_hint: 'Creating schedule...', mission_complete: 'Session Finished' },
@@ -500,7 +522,7 @@
                 cam: { stream: null, facingMode: 'environment', photoType: null, capturedPhoto: null }, 
                 currentRunPhotos: [], 
                 modal: { open: false, title: '', msg: '', confirmText: 'OK', showCancel: false, onConfirm: ()=>{}, onCancel: null },
-                aboutTab: 'info',
+                aboutTab: 'guide', // Default to GUIDE for new users
 
                 init() {
                     const load = (k) => JSON.parse(localStorage.getItem(k));
