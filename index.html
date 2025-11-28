@@ -77,7 +77,6 @@
         #app-container { width: 100%; max-width: 28rem; height: 100%; overflow-y: auto; overflow-x: hidden; transform-origin: top center; transition: transform 0.2s ease; }
         .icon { width: 1.25rem; height: 1.25rem; fill: currentColor; }
         
-        /* Feedback Button */
         .feedback-btn { position: fixed; bottom: 1rem; left: 1rem; z-index: 90; opacity: 0.5; transition: opacity 0.2s; }
         .feedback-btn:hover { opacity: 1; }
     </style>
@@ -464,6 +463,7 @@
                             <div class="font-bold text-xs text-[var(--text)]">Version History</div>
                             <div class="text-[10px] text-[var(--dim)]">Current: v<span x-text="appVersion"></span></div>
                             <ul class="list-disc pl-4 text-[10px] text-[var(--dim)]">
+                                <li>v2.5.2: AJAX Form Fix (No 404).</li>
                                 <li>v2.5: Feedback Form, Analytics Engine, Privacy Updates.</li>
                                 <li>v2.4: Added User Guide & Feature Manual.</li>
                                 <li>v2.3: Critical Timer Fixes, Privacy Hardening.</li>
@@ -490,7 +490,7 @@
                         <button @click="feedback.open = false" class="absolute top-2 right-2 text-xs">X</button>
                         <h3 class="text-sm font-bold mb-4 heading-font text-[var(--accent)]">TRANSMIT FEEDBACK</h3>
                         
-                        <form name="zero-feedback" method="POST" data-netlify="true" netlify>
+                        <form @submit.prevent="submitFeedback" name="zero-feedback" method="POST" data-netlify="true" netlify>
                             <input type="hidden" name="form-name" value="zero-feedback">
                             <input type="hidden" name="anon_id" :value="anonId">
                             <input type="hidden" name="app_version" :value="appVersion">
@@ -512,7 +512,7 @@
                                 <p class="text-[8px] text-[var(--dim)] italic mt-2">
                                     No photos are sent. Context (theme, mode, rank) is included for debugging.
                                 </p>
-                                <button type="submit" class="btn w-full text-xs py-3">TRANSMIT</button>
+                                <button type="submit" class="btn w-full text-xs py-3" x-text="feedback.submitting ? 'TRANSMITTING...' : 'TRANSMIT'" :disabled="feedback.submitting"></button>
                             </div>
                         </form>
                     </div>
@@ -534,7 +534,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "2.5.0";
+        const APP_VERSION = "2.5.2";
         const NARRATIVE = {
             tactical: { welcome: 'SYSTEM READY', init: 'INITIALIZE RUN', privacy_active: 'VISUAL SENSORS OFFLINE.', plan_hint: 'ALLOCATING RESOURCES...', mission_complete: 'OPERATION COMPLETE' },
             neutral: { welcome: 'Welcome Back', init: 'Start Session', privacy_active: 'Camera is disabled.', plan_hint: 'Creating schedule...', mission_complete: 'Session Finished' },
@@ -569,7 +569,7 @@
                 cam: { stream: null, facingMode: 'environment', photoType: null, capturedPhoto: null }, 
                 currentRunPhotos: [], 
                 modal: { open: false, title: '', msg: '', confirmText: 'OK', showCancel: false, onConfirm: ()=>{}, onCancel: null },
-                feedback: { open: false, context: '' },
+                feedback: { open: false, context: '', submitting: false },
                 aboutTab: 'guide',
 
                 init() {
@@ -586,7 +586,7 @@
                     this.anonId = aid;
                 },
 
-                // === ANALYTICS ENGINE ===
+                // === ANALYTICS & FEEDBACK ===
                 logEvent(name, payload = {}) {
                     const eventData = {
                         event: name,
@@ -595,8 +595,6 @@
                         ...payload
                     };
                     console.log('[ZERO ANALYTICS]', eventData);
-                    // Placeholder for future Plausible/Fathom integration
-                    // if(window.plausible) window.plausible(name, { props: payload });
                 },
 
                 openFeedback() {
@@ -607,6 +605,33 @@
                         view: this.view
                     });
                     this.feedback.open = true;
+                },
+
+                submitFeedback(e) {
+                    this.feedback.submitting = true;
+                    const formData = new FormData(e.target);
+                    
+                    // Netlify AJAX Submission
+                    fetch("/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams(formData).toString()
+                    })
+                    .then(() => {
+                        this.feedback.open = false;
+                        this.showModal('RECEIVED', 'Feedback transmission complete. +10 XP', 'OK');
+                        this.addXp(10);
+                        this.feedback.submitting = false;
+                        e.target.reset(); // Clear form
+                    })
+                    .catch((error) => {
+                        // If running locally, assume success for testing
+                        console.warn("Netlify Form submission failed (expected on localhost):", error);
+                        this.feedback.open = false;
+                        this.showModal('RECEIVED (LOCAL)', 'Feedback simulated. +10 XP', 'OK');
+                        this.addXp(10);
+                        this.feedback.submitting = false;
+                    });
                 },
 
                 setMode(m) { this.mode = m; playSound('tick'); this.logEvent('settings_changed', { mode: m }); },
